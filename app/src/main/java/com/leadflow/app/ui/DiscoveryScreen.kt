@@ -105,6 +105,22 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
 
+            Text(
+                "© OpenStreetMap contributors · Data available under the Open Database License (ODbL).",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            OutlinedButton(
+                onClick = {
+                    context.startActivity(
+                        Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://www.openstreetmap.org/copyright")
+                        )
+                    )
+                }
+            ) { Text("View data attribution") }
+
             if (loading) {
                 CircularProgressIndicator()
                 Text("Looking up the location and nearby listings…")
