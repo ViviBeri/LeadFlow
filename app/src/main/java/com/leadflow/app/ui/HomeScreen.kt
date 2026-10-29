@@ -24,7 +24,8 @@ fun HomeScreen(
     onAdd: () -> Unit,
     onView: () -> Unit,
     onExport: () -> Unit,
-    onSettings: () -> Unit
+    onSettings: () -> Unit,
+    onDiscover: () -> Unit
 ) {
     LfScaffold(title = "LeadFlow") { padding ->
         Column(
@@ -41,13 +42,14 @@ fun HomeScreen(
                     Text("leads saved")
                 }
             }
+            Button(onClick = onDiscover, modifier = Modifier.fillMaxWidth()) { Text("Discover Places") }
             Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) { Text("Add Lead Manually") }
             Button(onClick = onView, modifier = Modifier.fillMaxWidth()) { Text("View All Leads") }
             Button(onClick = onExport, modifier = Modifier.fillMaxWidth()) { Text("Export Data") }
             OutlinedButton(onClick = onSettings, modifier = Modifier.fillMaxWidth()) { Text("Settings") }
             Spacer(Modifier.weight(1f))
             Text(
-                "You send every message yourself. LeadFlow never auto-sends.",
+                "Discover local places and manage business leads. Messages are always sent manually.",
                 style = MaterialTheme.typography.bodySmall
             )
         }
