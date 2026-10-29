@@ -42,7 +42,15 @@ fun LeadFlowApp() {
                 onDiscover = { nav.navigate("discover") }
             )
         }
-        composable("discover") { DiscoveryScreen { nav.popBackStack() } }
+        composable("discover") {
+            DiscoveryScreen(
+                onBack = { nav.popBackStack() },
+                onSave = { place ->
+                    val notes = "Source: OpenStreetMap\nCategory: ${place.category}\nMap: ${place.mapUrl}"
+                    vm.addLead(place.name, place.address, place.phone, notes) {}
+                }
+            )
+        }
         composable("add") { AddLeadScreen(vm) { nav.popBackStack() } }
         composable("leads") { LeadsScreen(vm) { nav.popBackStack() } }
         composable("export") { ExportScreen(vm) { nav.popBackStack() } }
