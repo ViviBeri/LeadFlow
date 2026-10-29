@@ -1,6 +1,12 @@
 # LeadFlow
 Manual WhatsApp lead manager (Kotlin + Jetpack Compose + Room). No scraping, no auto-send, no accessibility service.
 
+<p align="center">
+  <img src="https://raw.githubusercontent.com/ViviBeri/LeadFlow/main/readme-hero.svg" alt="LeadFlow animated 3D project banner" width="100%" />
+</p>
+
+
+
 ## Build the APK
 1. Install Android Studio (Iguana or newer). It bundles JDK 17.
 2. File > Open > choose this LeadFlow folder. Wait for "Gradle sync" to finish (first run downloads ~500 MB; needs internet).
