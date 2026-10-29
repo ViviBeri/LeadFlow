@@ -11,6 +11,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.leadflow.app.ui.AddLeadScreen
+import com.leadflow.app.ui.DiscoveryScreen
 import com.leadflow.app.ui.ExportScreen
 import com.leadflow.app.ui.HomeScreen
 import com.leadflow.app.ui.LeadFlowTheme
@@ -37,9 +38,11 @@ fun LeadFlowApp() {
                 onAdd = { nav.navigate("add") },
                 onView = { nav.navigate("leads") },
                 onExport = { nav.navigate("export") },
-                onSettings = { nav.navigate("settings") }
+                onSettings = { nav.navigate("settings") },
+                onDiscover = { nav.navigate("discover") }
             )
         }
+        composable("discover") { DiscoveryScreen { nav.popBackStack() } }
         composable("add") { AddLeadScreen(vm) { nav.popBackStack() } }
         composable("leads") { LeadsScreen(vm) { nav.popBackStack() } }
         composable("export") { ExportScreen(vm) { nav.popBackStack() } }
