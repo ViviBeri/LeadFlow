@@ -4,82 +4,139 @@ import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import java.net.URLEncoder
-import java.nio.charset.StandardCharsets
+import com.leadflow.app.data.OpenPlaceSearch
+import com.leadflow.app.data.PlaceResult
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
-fun DiscoveryScreen(onBack: () -> Unit) {
-    var category by remember { mutableStateOf("Restaurants") }
+fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
+    var category by remember { mutableStateOf("Restaurant") }
     var location by remember { mutableStateOf("") }
+    var radius by remember { mutableStateOf("5000") }
+    var results by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
+    var loading by remember { mutableStateOf(false) }
+    var error by remember { mutableStateOf<String?>(null) }
+    var searched by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
 
     LfScaffold(title = "Discover Places", onBack = onBack) { padding ->
         Column(
-            modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Find places for your next visit", style = MaterialTheme.typography.headlineSmall)
-            Text("Search by category and location. LeadFlow will open matching Google Maps listings so you can check current ratings, reviews and details.")
+            Text("Find businesses by category and location", style = MaterialTheme.typography.titleLarge)
             OutlinedTextField(
                 value = category,
                 onValueChange = { category = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Category") },
-                placeholder = { Text("Restaurants, hotels, cafés…") },
+                label = { Text("Business category") },
+                placeholder = { Text("Restaurant, hotel, bakery…") },
                 singleLine = true
             )
             OutlinedTextField(
                 value = location,
                 onValueChange = { location = it },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Location") },
+                label = { Text("City or location") },
                 placeholder = { Text("Pondicherry, India") },
+                singleLine = true
+            )
+            OutlinedTextField(
+                value = radius,
+                onValueChange = { radius = it.filter(Char::isDigit).take(5) },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Search radius in metres (500–25000)") },
                 singleLine = true
             )
             Button(
                 onClick = {
-                    val query = listOf(category.trim(), location.trim()).filter { it.isNotBlank() }.joinToString(" ")
-                    val encoded = URLEncoder.encode(query, StandardCharsets.UTF_8.toString())
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.google.com/maps/search/?api=1&query=$encoded"))
-                    context.startActivity(intent)
+                    loading = true
+                    error = null
+                    searched = true
+                    results = emptyList()
+                    val selectedCategory = category.trim()
+                    val selectedLocation = location.trim()
+                    val selectedRadius = radius.toIntOrNull()?.coerceIn(500, 25000) ?: 5000
+                    scope.launch {
+                        try {
+                            results = withContext(Dispatchers.IO) {
+                                OpenPlaceSearch.search(selectedCategory, selectedLocation, selectedRadius)
+                            }
+                            if (results.isEmpty()) error = "No named places found. Try a broader category or nearby city."
+                        } catch (e: Exception) {
+                            error = e.message ?: "Search failed. Check your internet connection and try again."
+                        } finally {
+                            loading = false
+                        }
+                    }
                 },
-                enabled = category.isNotBlank() && location.isNotBlank(),
+                enabled = !loading && category.isNotBlank() && location.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Search on Google Maps") }
+            ) { Text(if (loading) "Searching…" else "Find Places") }
 
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Coming next", style = MaterialTheme.typography.titleMedium)
-                    Text("• Results ranked by rating and review count")
-                    Text("• Minimum rating and review-count filters")
-                    Text("• Nearby search and distance filters")
-                    Text("• Recent customer reviews and dish mentions")
-                    Text("• Save selected places and export results")
-                }
-            }
             Text(
-                "Current stage: this screen opens Google Maps for the selected search. Ratings and reviews are not yet imported, ranked or filtered inside LeadFlow.",
+                "Place names and locations come from OpenStreetMap. Google ratings and review text are not available from this data source.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+
+            if (loading) {
+                CircularProgressIndicator()
+                Text("Looking up the location and nearby listings…")
+            }
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            if (searched && !loading && results.isNotEmpty()) {
+                Text("${results.size} places found", style = MaterialTheme.typography.titleMedium)
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    items(results, key = { "${it.name}|${it.latitude}|${it.longitude}" }) { place ->
+                        PlaceCard(place = place, onOpen = {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(place.mapUrl)))
+                        }, onSave = { onSave(place) })
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PlaceCard(place: PlaceResult, onOpen: () -> Unit, onSave: () -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text(place.name, style = MaterialTheme.typography.titleMedium)
+            Text(place.category.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium)
+            Text(place.address, style = MaterialTheme.typography.bodyMedium)
+            if (place.phone.isNotBlank()) Text("Phone: ${place.phone}")
+            if (place.website.isNotBlank()) Text("Website: ${place.website}")
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedButton(onClick = onOpen) { Text("Open in Maps") }
+                Button(onClick = onSave) { Text("Save lead") }
+            }
         }
     }
 }
