@@ -2,8 +2,8 @@ package com.leadflow.app.data
 
 import org.json.JSONObject
 import java.net.HttpURLConnection
-import java.net.URLEncoder
 import java.net.URL
+import java.net.URLEncoder
 
 data class PlaceResult(
     val name: String,
@@ -19,22 +19,19 @@ data class PlaceResult(
 }
 
 object OpenPlaceSearch {
-    private const val USER_AGENT = "LeadFlowAndroid/1.0 (public place discovery)"
+    private const val USER_AGENT = "LeadFlowAndroid/1.0"
 
     fun search(category: String, location: String, radiusMeters: Int = 5000): List<PlaceResult> {
-        val coordinates = geocode(location)
-        val lat = coordinates.first
-        val lon = coordinates.second
-        val filter = categoryFilter(category)
-        val query = """
-            [out:json][timeout:25];
-            (
-              node(around:$radiusMeters,$lat,$lon)$filter;
-              way(around:$radiusMeters,$lat,$lon)$filter;
-              relation(around:$radiusMeters,$lat,$lon)$filter;
-            );
-            out center tags;
-        """.trimIndent()
+        val (lat, lon) = geocode(location)
+        val filters = categoryFilters(category)
+        val clauses = filters.joinToString("\n") { filter ->
+            """
+            node(around:$radiusMeters,$lat,$lon)$filter;
+            way(around:$radiusMeters,$lat,$lon)$filter;
+            relation(around:$radiusMeters,$lat,$lon)$filter;
+            """.trimIndent()
+        }
+        val query = "[out:json][timeout:25];\n(\n$clauses\n);\nout center tags;"
         val encoded = URLEncoder.encode(query, Charsets.UTF_8.name())
         val json = request("https://overpass-api.de/api/interpreter?data=$encoded")
         val elements = json.optJSONArray("elements") ?: return emptyList()
@@ -46,16 +43,14 @@ object OpenPlaceSearch {
             val name = tags.optString("name").trim()
             if (name.isBlank()) continue
             val address = listOf(
-                tags.optString("addr:housenumber"),
-                tags.optString("addr:street"),
-                tags.optString("addr:suburb"),
-                tags.optString("addr:city")
+                tags.optString("addr:housenumber"), tags.optString("addr:street"),
+                tags.optString("addr:suburb"), tags.optString("addr:city")
             ).filter { it.isNotBlank() }.distinct().joinToString(", ").ifBlank { location }
-            val latValue = if (item.has("lat")) item.optDouble("lat") else item.optJSONObject("center")?.optDouble("lat") ?: Double.NaN
-            val lonValue = if (item.has("lon")) item.optDouble("lon") else item.optJSONObject("center")?.optDouble("lon") ?: Double.NaN
-            if (!latValue.isFinite() || !lonValue.isFinite()) continue
-            val key = "$name|$address".lowercase()
-            if (!seen.add(key)) continue
+            val center = item.optJSONObject("center")
+            val latitude = if (item.has("lat")) item.optDouble("lat") else center?.optDouble("lat") ?: Double.NaN
+            val longitude = if (item.has("lon")) item.optDouble("lon") else center?.optDouble("lon") ?: Double.NaN
+            if (!latitude.isFinite() || !longitude.isFinite()) continue
+            if (!seen.add("$name|$address".lowercase())) continue
             val type = tags.optString("amenity").ifBlank {
                 tags.optString("tourism").ifBlank { tags.optString("shop").ifBlank { category } }
             }
@@ -66,12 +61,28 @@ object OpenPlaceSearch {
                     address = address,
                     phone = tags.optString("phone").ifBlank { tags.optString("contact:phone") },
                     website = tags.optString("website").ifBlank { tags.optString("contact:website") },
-                    latitude = latValue,
-                    longitude = lonValue
+                    latitude = latitude,
+                    longitude = longitude
                 )
             )
         }
         return results.sortedBy { it.name.lowercase() }
+    }
+
+    private fun categoryFilters(category: String): List<String> {
+        val value = category.trim().lowercase()
+        return when {
+            "hotel" in value || "lodging" in value -> listOf("""["tourism"="hotel"]""", """["tourism"="guest_house"]""")
+            "restaurant" in value || "food" in value -> listOf("""["amenity"="restaurant"]""")
+            "cafe" in value || "café" in value || "coffee" in value -> listOf("""["amenity"="cafe"]""")
+            "bakery" in value -> listOf("""["shop"="bakery"]""")
+            "bar" in value -> listOf("""["amenity"="bar"]""")
+            "pharmacy" in value -> listOf("""["amenity"="pharmacy"]""")
+            "supermarket" in value || "grocery" in value -> listOf("""["shop"="supermarket"]""")
+            "salon" in value -> listOf("""["shop"="hairdresser"]""")
+            "hospital" in value -> listOf("""["amenity"="hospital"]""")
+            else -> listOf("""["name"~".",i]""")
+        }
     }
 
     private fun geocode(location: String): Pair<Double, Double> {
@@ -81,22 +92,6 @@ object OpenPlaceSearch {
         if (results.length() == 0) throw IllegalStateException("No matching location found. Try a city or town name.")
         val first = results.getJSONObject(0)
         return first.getDouble("lat") to first.getDouble("lon")
-    }
-
-    private fun categoryFilter(category: String): String {
-        val value = category.trim().lowercase()
-        return when {
-            "restaurant" in value || "hotel" in value || "food" in value -> """["amenity"="restaurant"]"""
-            "cafe" in value || "café" in value || "coffee" in value -> """["amenity"="cafe"]"""
-            "hotel" in value || "lodging" in value -> """["tourism"="hotel"]"""
-            "bakery" in value -> """["shop"="bakery"]"""
-            "bar" in value -> """["amenity"="bar"]"""
-            "pharmacy" in value -> """["amenity"="pharmacy"]"""
-            "supermarket" in value || "grocery" in value -> """["shop"="supermarket"]"""
-            "salon" in value -> """["shop"="hairdresser"]"""
-            "hospital" in value -> """["amenity"="hospital"]"""
-            else -> """["name"~".",i]"""
-        }
     }
 
     private fun request(address: String): JSONObject {
