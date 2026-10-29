@@ -1,5 +1,6 @@
 package com.leadflow.app.data
 
+import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
@@ -33,7 +34,7 @@ object OpenPlaceSearch {
         }
         val query = "[out:json][timeout:25];\n(\n$clauses\n);\nout center tags;"
         val encoded = URLEncoder.encode(query, Charsets.UTF_8.name())
-        val json = request("https://overpass-api.de/api/interpreter?data=$encoded")
+        val json = JSONObject(requestText("https://overpass-api.de/api/interpreter?data=$encoded"))
         val elements = json.optJSONArray("elements") ?: return emptyList()
         val results = ArrayList<PlaceResult>()
         val seen = HashSet<String>()
@@ -87,14 +88,13 @@ object OpenPlaceSearch {
 
     private fun geocode(location: String): Pair<Double, Double> {
         val encoded = URLEncoder.encode(location, Charsets.UTF_8.name())
-        val json = request("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded")
-        val results = json.optJSONArray("results") ?: throw IllegalStateException("No matching location found. Try a city or town name.")
+        val results = JSONArray(requestText("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded"))
         if (results.length() == 0) throw IllegalStateException("No matching location found. Try a city or town name.")
         val first = results.getJSONObject(0)
         return first.getDouble("lat") to first.getDouble("lon")
     }
 
-    private fun request(address: String): JSONObject {
+    private fun requestText(address: String): String {
         val connection = (URL(address).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 12000
@@ -107,7 +107,7 @@ object OpenPlaceSearch {
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
             val body = stream.bufferedReader(Charsets.UTF_8).use { it.readText() }
             if (status !in 200..299) throw IllegalStateException("Place search service returned HTTP $status. Please try again later.")
-            return JSONObject(body)
+            return body
         } finally {
             connection.disconnect()
         }
