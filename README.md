@@ -1,70 +1,119 @@
 # LeadFlow
 
-**Discover the right businesses. Build a better pipeline.**
+**Find the right places. Discover the right prospects. Make better choices.**
 
-LeadFlow is an Android business lead discovery and management project designed to help sales teams, agencies, consultants and entrepreneurs find relevant business prospects using targeted search and practical filters.
+LeadFlow is a business discovery and local exploration concept for Android. It is designed to help people discover relevant businesses using location, category, public ratings and review information — whether they are finding prospects for work or choosing somewhere to eat or stay.
 
 <p align="center">
   <img src="https://raw.githubusercontent.com/ViviBeri/LeadFlow/main/readme-hero.svg" alt="LeadFlow project banner" width="100%" />
 </p>
 
-## What is LeadFlow?
+## One platform, two ways to discover
 
-Instead of searching for potential customers one business at a time, LeadFlow aims to bring discovery, qualification and follow-up into one streamlined workflow.
+### LeadFlow for Business — find relevant leads
 
-**Example:** A supplier looking for restaurant customers can search for **Restaurants** in **Pondicherry**, narrow the results by rating or contact availability, save promising businesses and export a shortlist for outreach.
+Help sales teams, agencies, consultants, suppliers and local service providers find businesses that match their target market.
 
-LeadFlow can support many industries: marketing agencies, distributors, service providers, business consultants, contractors and local sales teams.
+**Example:** Search for **Restaurants** in **Pondicherry**, filter by rating, review count or website availability, sort the results and save promising prospects for follow-up.
 
-## Planned lead discovery
+Planned filters include:
 
-| Filter | Example | Why it matters |
+| Filter | Examples | Purpose |
 |---|---|---|
-| **Category** | Restaurants, hotels, bakeries, salons | Target the right industry |
-| **Location** | Pondicherry, Cuddalore, Villupuram | Focus on a service territory |
-| **Rating range** | 3.0–4.0, 4.0+ | Segment businesses by public rating |
-| **Review count** | Fewer than 50, 50–200, 200+ | Compare visibility and activity |
-| **Contact availability** | Has phone, has website | Prioritize reachable prospects |
-| **Website presence** | With or without website | Identify digital-service opportunities |
-| **Subcategory** | Cafés, fine dining, budget hotels | Refine broad industry searches |
-| **Distance / area** | Within a chosen radius | Plan territory-based outreach |
-| **Sort order** | Rating, reviews, distance, name | Organize the results |
+| Business category | Restaurants, hotels, bakeries, salons | Target the right industry |
+| Location | Pondicherry, Cuddalore, Villupuram | Focus on a city or service area |
+| Rating | 3.5+, 4.0+, 4.5+ | Narrow results by public rating |
+| Review count | 10+, 50+, 200+ | Compare the amount of available feedback |
+| Website | With / without website | Find businesses with different online-presence needs |
+| Phone availability | Has a listed phone number | Prioritize prospects with public contact details |
+| Subcategory / keywords | Café, family restaurant, boutique hotel | Refine the search |
+| Distance / radius | Nearby, within a selected radius | Focus on a local area |
+| Sort order | Rating, review count, distance, relevance | Put useful matches first |
 
-Filter availability will depend on the selected data source and which fields it provides. A low rating does not by itself mean a business needs a particular service.
+LeadFlow can help users identify prospects, but ratings alone do not prove a business needs a particular service. All filters will depend on the fields available from the selected data source.
 
-## Product vision
+### LeadFlow Explore — find places to visit
 
-1. **Find businesses** — enter a category and location to discover relevant public business listings.
-2. **Refine results** — apply available filters such as rating, review count, website presence and business subcategory.
-3. **Evaluate prospects** — review names, addresses, contact information, listing links and other available details.
-4. **Save leads** — select prospects, detect potential duplicates and organize them into a local lead collection.
-5. **Manage follow-ups** — track lead status, notes and next-contact dates.
-6. **Export and connect** — export selected leads as CSV, Excel or PDF and open contact channels for manual outreach.
+A tourist or local resident can search for **restaurants, cafés, hotels and other places nearby**, filter by rating or review count, and see the strongest matches in a clear ranked list.
 
-## Current implementation
+Planned capabilities:
+- Search by current/selected location, category and radius
+- Filter by minimum rating and review count
+- Sort by rating, review volume, distance or relevance
+- Show available address, hours, phone, website and map/listing link
+- Make the reason for a recommendation clear, such as rating threshold or proximity
+- Link users to the original listing so they can check current details before visiting
 
-LeadFlow currently contains a native Android lead-management foundation built with:
+A high rating is only one signal, not a guarantee of quality. Where possible, ranking should account for both rating and review volume rather than treating a 5.0 rating from very few reviews as automatically better than a well-reviewed alternative. Results should identify the source and when information was last retrieved when that information is available.
 
-- **Kotlin** and **Jetpack Compose** for the Android interface
+### LeadFlow Dish Insights — discover dishes customers actually mention
+
+This planned companion feature focuses on a different question:
+
+**“What dish should I try at this restaurant?”**
+
+Rather than promoting paid placements or repeating influencer recommendations, Dish Insights aims to surface dishes that real customers explicitly mention in public reviews of a restaurant or hotel.
+
+Planned approach:
+1. Retrieve review information only through a permitted data source.
+2. Prioritize the newest available reviews and show the review date when supplied.
+3. Identify specific dish names mentioned by reviewers.
+4. Show a concise explanation based on the review, with a link or reference to the original review/listing where permitted.
+5. Distinguish positive, mixed and negative customer comments; do not label a dish “best” simply because it appears once.
+6. Indicate how many recent reviews mention a dish and how recent that evidence is, when enough data is available.
+7. Clearly label cases where evidence is limited or no dish-specific feedback was found.
+
+**Authenticity principle:** Dish Insights is intended to be based on genuine customer experiences, not paid promotion by restaurants, owners or influencers. The product should not sell ranking placement or present sponsored content as organic customer feedback. It should also avoid claiming that a dish is a proven customer favorite unless the available review evidence supports that conclusion.
+
+Review access, display, quotation and analysis must follow the data provider's terms and applicable rules. If a provider does not permit access to review text or dish-level analysis, the feature must use another permitted source or clearly explain the limitation rather than bypassing access controls. Google Maps/Places data availability and API terms must be checked before implementation; not all reviews or review history are necessarily available.
+
+## Typical workflows
+
+**Business lead discovery**
+1. Choose a category and location.
+2. Apply filters such as rating, review count, website and phone availability.
+3. Review and sort matching business listings.
+4. Save relevant prospects and detect possible duplicates.
+5. Track statuses, notes and follow-up dates.
+6. Export a shortlist to CSV, Excel or PDF and contact businesses manually.
+
+**Tourist and local discovery**
+1. Select a place category and location or nearby search.
+2. Set a rating threshold, review-count preference and radius.
+3. Compare ranked results and open the original listing for details.
+
+**Dish discovery**
+1. Select a restaurant.
+2. Review dish names found in the newest available customer reviews.
+3. Compare the supporting feedback and dates where available.
+4. Open the source listing/review to check context before deciding what to order.
+
+## Current Android implementation
+
+The current project is a native Android lead-management foundation built with:
+
+- **Kotlin** and **Jetpack Compose**
 - **Room** for local lead storage
-- Screens for Home, Add Lead, Leads, Export and Settings
-- Local search, basic lead management and export utilities
-- CSV, XLSX and PDF generation
+- Home, Add Lead, Leads, Export and Settings screens
+- Local lead search and basic lead management
+- CSV, XLSX and PDF export utilities
 - WhatsApp click-to-open support
 
-**Development status:** Online business discovery and advanced search filters are planned features, not yet implemented. Existing screens and exports still require end-to-end device verification.
+**Development status:** Online business discovery, nearby place search, ranked recommendations and dish-level review insights are product goals and are not yet implemented or verified. A successful APK build alone does not prove these workflows work.
 
 ## Development roadmap
 
-- [ ] Verify launch, navigation, lead persistence and exports on Android
-- [ ] Create the business discovery screen with category and location inputs
-- [ ] Integrate an appropriate business-listing data source
-- [ ] Display results with available contact details and source links
-- [ ] Add rating, review-count, category and contact-availability filters
-- [ ] Add sorting, pagination and useful empty/error states
-- [ ] Save selected search results to Room with duplicate detection
-- [ ] Add lead statuses, notes and follow-up scheduling
-- [ ] Verify the full discovery-to-export workflow on a device
+- [ ] Verify launch, navigation, lead persistence and export workflows on Android
+- [ ] Design a shared category-and-location discovery experience
+- [ ] Integrate a suitable permitted business/place data source
+- [ ] Add search results, filters, sorting and pagination
+- [ ] Add rating and review-count-aware ranking with transparent criteria
+- [ ] Save selected business leads locally and detect duplicates
+- [ ] Add lead statuses, notes and follow-up dates
+- [ ] Explore review-source permissions and feasibility for Dish Insights
+- [ ] Prototype dish-name extraction from permitted, available review data
+- [ ] Show recent review dates, supporting evidence and uncertainty
+- [ ] Test discovery, ranking and export workflows end-to-end on Android
 
 ## Build the Android app
 
@@ -94,10 +143,10 @@ To install on an Android device, open the APK from the phone's file manager and 
 
 Source files are under `app/src/main/java/com/leadflow/app/` unless otherwise noted.
 
-## Data and responsible outreach
+## Responsible data use
 
-Business data availability, search limits and permitted use depend on the data provider. Integrations should respect provider terms, applicable privacy laws and marketing rules. LeadFlow is intended to help users research and manage prospects, not to send unsolicited automated messages.
+LeadFlow is intended for useful discovery and informed decisions, not automated unsolicited messaging or deceptive rankings. Data availability, review access and permitted use depend on each provider. Integrations must respect source terms, privacy requirements and applicable law. Recommendations should be transparent about their criteria, and customer reviews should not be fabricated, manipulated or misrepresented.
 
 ## Contributing
 
-Contributions and suggestions are welcome, particularly around Android usability, search/filter design, data-source integration, duplicate detection and reliable exports. Features should be tested and documented before being marked complete.
+Suggestions and contributions are welcome, especially around Android usability, search/filter design, fair ranking, permitted data-source integration, review analysis, duplicate detection and reliable exports. Features should be tested and documented before being marked complete.
