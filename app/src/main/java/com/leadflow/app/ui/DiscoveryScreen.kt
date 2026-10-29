@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.weight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -112,7 +113,10 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (searched && !loading && results.isNotEmpty()) {
                 Text("${results.size} places found", style = MaterialTheme.typography.titleMedium)
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
                     items(results, key = { "${it.name}|${it.latitude}|${it.longitude}" }) { place ->
                         PlaceCard(place = place, onOpen = {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(place.mapUrl)))
