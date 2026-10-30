@@ -17,6 +17,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -41,6 +42,8 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var searched by remember { mutableStateOf(false) }
+    var resultFilter by remember { mutableStateOf("") }
+    var sortByCategory by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -127,12 +130,36 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
             }
             error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (searched && !loading && results.isNotEmpty()) {
-                Text("${results.size} places found", style = MaterialTheme.typography.titleMedium)
+                val visibleResults = results
+                    .filter {
+                        resultFilter.isBlank() ||
+                            it.name.contains(resultFilter, ignoreCase = true) ||
+                            it.address.contains(resultFilter, ignoreCase = true) ||
+                            it.category.contains(resultFilter, ignoreCase = true)
+                    }
+                    .let { list ->
+                        if (sortByCategory) list.sortedWith(compareBy<PlaceResult> { it.category }.thenBy { it.name })
+                        else list.sortedBy { it.name }
+                    }
+                Text("${visibleResults.size} of ${results.size} places", style = MaterialTheme.typography.titleMedium)
+                OutlinedTextField(
+                    value = resultFilter,
+                    onValueChange = { resultFilter = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Filter results by name, address or type") },
+                    singleLine = true
+                )
+                TextButton(onClick = { sortByCategory = !sortByCategory }) {
+                    Text(if (sortByCategory) "Sort: Name" else "Sort: Category")
+                }
+                if (visibleResults.isEmpty()) {
+                    Text("No matching places. Try a different filter.")
+                }
                 LazyColumn(
                     modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
-                    items(results, key = { "${it.name}|${it.latitude}|${it.longitude}" }) { place ->
+                    items(visibleResults, key = { "${it.name}|${it.latitude}|${it.longitude}" }) { place ->
                         PlaceCard(place = place, onOpen = {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(place.mapUrl)))
                         }, onSave = { onSave(place) })
