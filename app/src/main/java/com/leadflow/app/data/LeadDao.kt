@@ -12,7 +12,7 @@ interface LeadDao {
     /** Empty query matches everything; otherwise matches business name OR address (area). */
     @Query(
         "SELECT * FROM leads " +
-        "WHERE businessName LIKE '%' || :q || '%' OR address LIKE '%' || :q || '%' " +
+        "WHERE businessName LIKE '%' || :q || '%' OR address LIKE '%' || :q || '%' OR email LIKE '%' || :q || '%' OR website LIKE '%' || :q || '%' " +
         "ORDER BY createdAt DESC"
     )
     fun search(q: String): Flow<List<Lead>>
