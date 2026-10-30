@@ -14,5 +14,6 @@ data class Lead(
     val status: String = "New",
     val followUpDate: String = "",
     val tags: String = "",
+    val priority: String = "Medium",
     val createdAt: Long = System.currentTimeMillis()
 )
