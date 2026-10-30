@@ -2,6 +2,9 @@ package com.leadflow.app.ui
 
 import android.app.DatePickerDialog
 import java.util.Calendar
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -50,6 +53,11 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     val query by vm.searchText.collectAsState()
     var toDelete by remember { mutableStateOf<Lead?>(null) }
     var toSend by remember { mutableStateOf<Lead?>(null) }
+    val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
+    val activeLeads = leads.filterNot { it.status == "Converted" || it.status == "Not Interested" }
+    val overdueCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate < today }
+    val dueTodayCount = activeLeads.count { it.followUpDate == today }
+    val upcomingCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate > today }
 
     fun openWhatsApp(lead: Lead) = WhatsApp.open(context, lead, vm.prefs.template)
 
@@ -70,6 +78,16 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                     }
                 }
             )
+            if (leads.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FollowUpSummaryCard("Overdue", overdueCount, Modifier.weight(1f))
+                    FollowUpSummaryCard("Due today", dueTodayCount, Modifier.weight(1f))
+                    FollowUpSummaryCard("Upcoming", upcomingCount, Modifier.weight(1f))
+                }
+            }
             if (leads.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(if (query.isBlank()) "No leads yet" else "No matches")
@@ -192,6 +210,21 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onStat
                     Icon(Icons.Default.Delete, contentDescription = "Delete lead")
                 }
             }
+        }
+    }
+}
+
+
+@Composable
+private fun FollowUpSummaryCard(label: String, count: Int, modifier: Modifier = Modifier) {
+    Card(modifier) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            Text(count.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Text(label, style = MaterialTheme.typography.labelSmall, maxLines = 1)
         }
     }
 }
