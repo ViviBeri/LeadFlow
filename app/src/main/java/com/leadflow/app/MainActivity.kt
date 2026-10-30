@@ -56,7 +56,7 @@ fun LeadFlowApp() {
                 onBack = { nav.popBackStack() },
                 onSave = { place ->
                     val notes = "Source: OpenStreetMap\nCategory: ${place.category}\nMap: ${place.mapUrl}"
-                    vm.addDiscoveredLeadIfNew(place.name, place.address, place.phone, notes) { added ->
+                    vm.addDiscoveredLeadIfNew(place.name, place.address, place.phone, notes, place.website) { added ->
                         Toast.makeText(
                             nav.context,
                             if (added) "Lead saved successfully" else "This lead is already saved",
