@@ -93,7 +93,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     FollowUpSummaryCard("Overdue", overdueCount, followUpFilter == "Overdue", Modifier.weight(1f)) { followUpFilter = if (followUpFilter == "Overdue") "All" else "Overdue" }
-                    FollowUpSummaryCard("Due today", dueTodayCount, Modifier.weight(1f))
+                    FollowUpSummaryCard("Due today", dueTodayCount, followUpFilter == "Due today", Modifier.weight(1f)) { followUpFilter = if (followUpFilter == "Due today") "All" else "Due today" }
                     FollowUpSummaryCard("Upcoming", upcomingCount, followUpFilter == "Upcoming", Modifier.weight(1f)) { followUpFilter = if (followUpFilter == "Upcoming") "All" else "Upcoming" }
                 }
             }
