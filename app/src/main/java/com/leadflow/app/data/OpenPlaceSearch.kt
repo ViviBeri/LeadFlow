@@ -2,7 +2,9 @@ package com.leadflow.app.data
 
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.IOException
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.URLEncoder
 
@@ -34,7 +36,12 @@ object OpenPlaceSearch {
         }
         val query = "[out:json][timeout:25];\n(\n$clauses\n);\nout center tags;"
         val encoded = URLEncoder.encode(query, Charsets.UTF_8.name())
-        val json = JSONObject(requestText("https://overpass-api.de/api/interpreter?data=$encoded"))
+        val response = requestText("https://overpass-api.de/api/interpreter?data=$encoded")
+        val json = try {
+            JSONObject(response)
+        } catch (exception: org.json.JSONException) {
+            throw IllegalStateException("The place search service returned an unreadable response. Please try again later.", exception)
+        }
         val elements = json.optJSONArray("elements") ?: return emptyList()
         val results = ArrayList<PlaceResult>()
         val seen = HashSet<String>()
@@ -105,9 +112,18 @@ object OpenPlaceSearch {
         try {
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val body = stream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            if (status !in 200..299) throw IllegalStateException("Place search service returned HTTP $status. Please try again later.")
+            val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+            if (status !in 200..299) {
+                throw IllegalStateException("Place search service returned HTTP $status. Please try again later.")
+            }
+            if (body.isBlank()) {
+                throw IllegalStateException("Place search service returned an empty response. Please try again.")
+            }
             return body
+        } catch (exception: SocketTimeoutException) {
+            throw IllegalStateException("Place search timed out. Check your connection and try again.", exception)
+        } catch (exception: IOException) {
+            throw IllegalStateException("Unable to reach the place search service. Check your internet connection and try again.", exception)
         } finally {
             connection.disconnect()
         }
