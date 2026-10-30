@@ -13,12 +13,12 @@ import java.util.zip.ZipOutputStream
 
 /** Turns a list of leads into the bytes of a CSV, XLSX or PDF file. */
 object Exporter {
-    private val HEADERS = listOf("Business Name", "Address", "Phone", "Notes", "Date Added")
+    private val HEADERS = listOf("Business Name", "Address", "Phone", "Email", "Website", "Notes", "Date Added")
 
     private fun date(ms: Long): String =
         SimpleDateFormat("dd-MM-yyyy HH:mm", Locale.ENGLISH).format(Date(ms))
 
-    private fun row(l: Lead) = listOf(l.businessName, l.address, l.phone, l.notes, date(l.createdAt))
+    private fun row(l: Lead) = listOf(l.businessName, l.address, l.phone, l.email, l.website, l.notes, date(l.createdAt))
 
     // ---------------------------------------------------------------- CSV
     fun toCsv(leads: List<Lead>): ByteArray {
@@ -47,7 +47,7 @@ object Exporter {
         val sheet = buildString {
             append("""<?xml version="1.0" encoding="UTF-8" standalone="yes"?>""")
             append("""<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">""")
-            append("""<cols><col min="1" max="1" width="30" customWidth="1"/><col min="2" max="2" width="40" customWidth="1"/><col min="3" max="3" width="16" customWidth="1"/><col min="4" max="4" width="40" customWidth="1"/><col min="5" max="5" width="18" customWidth="1"/></cols>""")
+            append("""<cols><col min="1" max="1" width="30" customWidth="1"/><col min="2" max="2" width="40" customWidth="1"/><col min="3" max="3" width="16" customWidth="1"/><col min="4" max="5" width="30" customWidth="1"/><col min="6" max="6" width="40" customWidth="1"/><col min="7" max="7" width="18" customWidth="1"/></cols>""")
             append("<sheetData>")
             append(rowXml(1, HEADERS, 1))
             leads.forEachIndexed { i, l -> append(rowXml(i + 2, row(l), 0)) }
@@ -88,8 +88,8 @@ object Exporter {
         val pageW = 842 // A4 landscape in points
         val pageH = 595
         val margin = 30f
-        val colX = floatArrayOf(30f, 200f, 360f, 460f, 700f)
-        val colW = floatArrayOf(160f, 150f, 90f, 230f, 112f)
+        val colX = floatArrayOf(30f, 155f, 300f, 390f, 510f, 635f, 755f)
+        val colW = floatArrayOf(118f, 138f, 82f, 112f, 118f, 112f, 55f)
         val title = Paint().apply { textSize = 16f; isFakeBoldText = true }
         val head = Paint().apply { textSize = 11f; isFakeBoldText = true }
         val body = Paint().apply { textSize = 10f }
