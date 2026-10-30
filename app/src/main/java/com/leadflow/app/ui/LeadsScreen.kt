@@ -81,6 +81,10 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var followUpFilter by remember { mutableStateOf("All") }
     var priorityFilter by remember { mutableStateOf("All") }
     var priorityFilterExpanded by remember { mutableStateOf(false) }
+    var statusFilter by remember { mutableStateOf("All") }
+    var statusFilterExpanded by remember { mutableStateOf(false) }
+    var contactFilter by remember { mutableStateOf("All") }
+    var contactFilterExpanded by remember { mutableStateOf(false) }
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val activeLeads = leads.filterNot { it.status == "Converted" || it.status == "Not Interested" }
     val overdueCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate < today }
@@ -92,8 +96,17 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
         "Upcoming" -> leads.filter { it.status != "Converted" && it.status != "Not Interested" && it.followUpDate.isNotBlank() && it.followUpDate > today }
         else -> leads
     }
-    val visibleLeads = if (priorityFilter == "All") followUpLeads
+    val priorityLeads = if (priorityFilter == "All") followUpLeads
         else followUpLeads.filter { it.priority == priorityFilter }
+    val statusLeads = if (statusFilter == "All") priorityLeads
+        else priorityLeads.filter { it.status == statusFilter }
+    val visibleLeads = when (contactFilter) {
+        "Phone" -> statusLeads.filter { it.phone.isNotBlank() }
+        "Email" -> statusLeads.filter { it.email.isNotBlank() }
+        "Website" -> statusLeads.filter { it.website.isNotBlank() }
+        "Missing contact" -> statusLeads.filter { it.phone.isBlank() && it.email.isBlank() && it.website.isBlank() }
+        else -> statusLeads
+    }
 
     fun openWhatsApp(lead: Lead) = WhatsApp.open(context, lead, vm.prefs.template)
 
@@ -155,12 +168,38 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                     TextButton(onClick = { priorityFilter = "All" }) { Text("Clear") }
                 }
             }
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Status:", style = MaterialTheme.typography.labelLarge)
+                Box {
+                    TextButton(onClick = { statusFilterExpanded = true }) { Text(statusFilter) }
+                    DropdownMenu(expanded = statusFilterExpanded, onDismissRequest = { statusFilterExpanded = false }) {
+                        listOf("All", "New", "Contacted", "Interested", "Converted", "Not Interested").forEach { status ->
+                            DropdownMenuItem(text = { Text(status) }, onClick = { statusFilter = status; statusFilterExpanded = false })
+                        }
+                    }
+                }
+                Text("Contact:", style = MaterialTheme.typography.labelLarge)
+                Box {
+                    TextButton(onClick = { contactFilterExpanded = true }) { Text(contactFilter) }
+                    DropdownMenu(expanded = contactFilterExpanded, onDismissRequest = { contactFilterExpanded = false }) {
+                        listOf("All", "Phone", "Email", "Website", "Missing contact").forEach { option ->
+                            DropdownMenuItem(text = { Text(option) }, onClick = { contactFilter = option; contactFilterExpanded = false })
+                        }
+                    }
+                }
+                if (statusFilter != "All" || contactFilter != "All" || priorityFilter != "All" || followUpFilter != "All") {
+                    TextButton(onClick = { statusFilter = "All"; contactFilter = "All"; priorityFilter = "All"; followUpFilter = "All" }) { Text("Clear all") }
+                }
+            }
             if (leads.isEmpty() || visibleLeads.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(when {
                         leads.isEmpty() -> if (query.isBlank()) "No leads yet" else "No matches"
-                        followUpFilter != "All" -> "No $followUpFilter follow-ups"
-                        else -> "No $priorityFilter priority leads"
+                        followUpFilter != "All" -> "No $followUpFilter follow-ups match"
+                        statusFilter != "All" -> "No $statusFilter leads match"
+                        contactFilter != "All" -> "No leads match contact filter: $contactFilter"
+                        priorityFilter != "All" -> "No $priorityFilter priority leads match"
+                        else -> "No matching leads"
                     })
                 }
             } else {
