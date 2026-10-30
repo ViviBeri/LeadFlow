@@ -59,6 +59,9 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var editedNotes by remember { mutableStateOf("") }
     var toEditTags by remember { mutableStateOf<Lead?>(null) }
     var editedTags by remember { mutableStateOf("") }
+    var toAddActivity by remember { mutableStateOf<Lead?>(null) }
+    var activityType by remember { mutableStateOf("Call") }
+    var activityDetails by remember { mutableStateOf("") }
     var followUpFilter by remember { mutableStateOf("All") }
     var priorityFilter by remember { mutableStateOf("All") }
     var priorityFilterExpanded by remember { mutableStateOf(false) }
@@ -158,6 +161,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                             onDelete = { toDelete = lead },
                             onEditNotes = { editedNotes = lead.notes; toEditNotes = lead },
                             onEditTags = { editedTags = lead.tags; toEditTags = lead },
+                            onAddActivity = { activityType = "Call"; activityDetails = ""; toAddActivity = lead },
                             onStatusChange = { status -> vm.updateLeadStatus(lead, status) },
                             onPriorityChange = { priority -> vm.updateLeadPriority(lead, priority) },
                             onFollowUp = { date -> vm.updateLeadFollowUpDate(lead, date) },
@@ -247,6 +251,42 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
         )
     }
 
+    toAddActivity?.let { lead ->
+        AlertDialog(
+            onDismissRequest = { toAddActivity = null },
+            title = { Text("Log activity · ${lead.businessName}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Activity type")
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        listOf("Call", "WhatsApp", "Meeting", "Email", "Other").forEach { type ->
+                            TextButton(onClick = { activityType = type }) {
+                                Text(if (activityType == type) "✓ $type" else type)
+                            }
+                        }
+                    }
+                    OutlinedTextField(
+                        value = activityDetails,
+                        onValueChange = { activityDetails = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        minLines = 3,
+                        placeholder = { Text("What happened? Add outcome or next step") }
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault()).format(Date())
+                    val details = activityDetails.trim()
+                    val entry = "[$timestamp] $activityType" + if (details.isBlank()) "" else ": $details"
+                    vm.addLeadActivity(lead, entry)
+                    toAddActivity = null
+                }, enabled = activityDetails.isNotBlank()) { Text("Save activity") }
+            },
+            dismissButton = { TextButton(onClick = { toAddActivity = null }) { Text("Cancel") } }
+        )
+    }
+
     toSend?.let { lead ->
         AlertDialog(
             onDismissRequest = { toSend = null },
@@ -263,7 +303,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onStatusChange: (String) -> Unit, onPriorityChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
+private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onAddActivity: () -> Unit, onStatusChange: (String) -> Unit, onPriorityChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
     var statusMenuExpanded by remember { mutableStateOf(false) }
     var priorityMenuExpanded by remember { mutableStateOf(false) }
     val statuses = listOf("New", "Contacted", "Interested", "Converted", "Not Interested")
@@ -294,6 +334,11 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEdit
             TextButton(onClick = onEditTags) {
                 Text(if (lead.tags.isBlank()) "Add tags" else "Edit tags")
             }
+            if (lead.activityLog.isNotBlank()) {
+                Text("Recent activity:", style = MaterialTheme.typography.labelMedium)
+                Text(lead.activityLog.lines().takeLast(2).asReversed().joinToString("\n"), style = MaterialTheme.typography.bodySmall)
+            }
+            TextButton(onClick = onAddActivity) { Text("Add activity") }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Priority: " + lead.priority, style = MaterialTheme.typography.labelMedium)
                 Box {
