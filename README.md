@@ -90,28 +90,48 @@ Review access, display, quotation and analysis must follow the data provider's t
 
 ## Current Android implementation
 
-The current project is a native Android lead-management foundation built with:
+LeadFlow now includes an initial working place-discovery flow alongside its local lead-management foundation.
 
-- **Kotlin** and **Jetpack Compose**
+**Built with:**
+- **Kotlin** and **Jetpack Compose** for the native Android interface
 - **Room** for local lead storage
-- Home, Add Lead, Leads, Export and Settings screens
-- Local lead search and basic lead management
-- CSV, XLSX and PDF export utilities
-- WhatsApp click-to-open support
+- **OpenStreetMap Nominatim** for location lookup
+- **OpenStreetMap Overpass API** for nearby place listings
+- Kotlin coroutines for background network requests
 
-**Development status:** Online business discovery, nearby place search, ranked recommendations and dish-level review insights are product goals and are not yet implemented or verified. A successful APK build alone does not prove these workflows work.
+**Implemented in the app:**
+- Home, Discover Places, Add Lead, Leads, Export and Settings screens
+- Search places by category, typed location and configurable radius (500–25,000 metres)
+- Initial category coverage for restaurants, hotels/guest houses, cafés, bakeries, bars, pharmacies, supermarkets, salons and hospitals
+- Filter fetched results by name, address or category
+- Sort results by name or category
+- View available address, phone number and website details
+- Open a discovered place in Google Maps
+- Save a discovered place into the local lead database
+- Check for an existing lead with the same normalized business name and address before saving
+- Show save feedback for new and duplicate leads
+- Display OpenStreetMap attribution and a link to its copyright page
+- Existing local lead search, management, export utilities and WhatsApp click-to-open support
+
+**Data-source limitations:** The current discovery implementation uses OpenStreetMap listings. It does not provide Google ratings, review counts, customer review text, opening hours in the current result model, or verified business rankings. The result filter searches already-fetched listings; it is not a Google review/rating filter. Nominatim and Overpass are community services with usage policies and availability limits, so requests should be paced and a production deployment should assess service policies and a suitable hosted data provider. A successful CI build confirms compilation and APK packaging, not end-to-end network behavior on a physical phone.
 
 ## Development roadmap
 
-- [ ] Verify launch, navigation, lead persistence and export workflows on Android
-- [ ] Design a shared category-and-location discovery experience
-- [ ] Integrate a suitable permitted business/place data source
-- [ ] Add search results, filters, sorting and pagination
-- [ ] Add rating and review-count-aware ranking with transparent criteria
-- [ ] Save selected business leads locally and detect duplicates
-- [ ] Add lead statuses, notes and follow-up dates
+- [x] Build the initial category-and-location place discovery screen
+- [x] Integrate OpenStreetMap geocoding and nearby place lookup
+- [x] Add result filtering by name, address and category
+- [x] Add sorting by name and category
+- [x] Save discovered places to the local lead database
+- [x] Prevent duplicate discovered leads by business name and address
+- [x] Add OpenStreetMap attribution in the discovery interface
+- [ ] Verify search behavior and lead saving on a physical Android device
+- [ ] Improve error handling, request pacing and resilient data-source behavior
+- [ ] Add pagination or result limits for large searches
+- [ ] Add lead statuses, notes, tags and follow-up dates
+- [ ] Integrate a permitted data source that supplies ratings and review counts
+- [ ] Add transparent rating/review-count-aware ranking when reliable fields are available
 - [ ] Explore review-source permissions and feasibility for Dish Insights
-- [ ] Prototype dish-name extraction from permitted, available review data
+- [ ] Prototype dish-name extraction only from permitted, available review data
 - [ ] Show recent review dates, supporting evidence and uncertainty
 - [ ] Test discovery, ranking and export workflows end-to-end on Android
 
@@ -129,8 +149,10 @@ To install on an Android device, open the APK from the phone's file manager and 
 | File | Responsibility |
 |---|---|
 | `MainActivity.kt` | Navigation |
-| `LeadViewModel.kt` | Lead state and operations |
+| `LeadViewModel.kt` | Lead state, operations and duplicate checks |
 | `data/Lead.kt` | Lead model |
+| `data/OpenPlaceSearch.kt` | OpenStreetMap geocoding and nearby place search |
+| `ui/DiscoveryScreen.kt` | Category/location discovery, result filtering and sorting |
 | `data/LeadDao.kt` | Database queries |
 | `data/AppDatabase.kt` | Room database |
 | `ui/HomeScreen.kt` | Dashboard |
