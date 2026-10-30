@@ -20,6 +20,9 @@ interface LeadDao {
     @Query("UPDATE leads SET status = :status WHERE id = :leadId")
     suspend fun updateStatus(leadId: Long, status: String)
 
+    @Query("UPDATE leads SET followUpDate = :date WHERE id = :leadId")
+    suspend fun updateFollowUpDate(leadId: Long, date: String)
+
     @Query("SELECT COUNT(*) FROM leads")
     fun observeCount(): Flow<Int>
 
