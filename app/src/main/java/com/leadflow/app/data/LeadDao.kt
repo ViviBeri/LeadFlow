@@ -17,6 +17,9 @@ interface LeadDao {
     )
     fun search(q: String): Flow<List<Lead>>
 
+    @Query("UPDATE leads SET businessName = :name, address = :address, phone = :phone WHERE id = :leadId")
+    suspend fun updateContactDetails(leadId: Long, name: String, address: String, phone: String)
+
     @Query("UPDATE leads SET status = :status WHERE id = :leadId")
     suspend fun updateStatus(leadId: Long, status: String)
 
