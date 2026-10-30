@@ -17,6 +17,7 @@ import com.leadflow.app.ui.ExportScreen
 import com.leadflow.app.ui.HomeScreen
 import com.leadflow.app.ui.LeadFlowTheme
 import com.leadflow.app.ui.LeadsScreen
+import com.leadflow.app.ui.ReportsScreen
 import com.leadflow.app.ui.SettingsScreen
 
 class MainActivity : ComponentActivity() {
@@ -45,6 +46,7 @@ fun LeadFlowApp() {
                 onAdd = { nav.navigate("add") },
                 onView = { nav.navigate("leads") },
                 onExport = { nav.navigate("export") },
+                onReports = { nav.navigate("reports") },
                 onSettings = { nav.navigate("settings") },
                 onDiscover = { nav.navigate("discover") }
             )
@@ -67,6 +69,7 @@ fun LeadFlowApp() {
         composable("add") { AddLeadScreen(vm) { nav.popBackStack() } }
         composable("leads") { LeadsScreen(vm) { nav.popBackStack() } }
         composable("export") { ExportScreen(vm) { nav.popBackStack() } }
+        composable("reports") { ReportsScreen(vm) { nav.popBackStack() } }
         composable("settings") { SettingsScreen(vm) { nav.popBackStack() } }
     }
 }
