@@ -16,5 +16,7 @@ data class Lead(
     val tags: String = "",
     val priority: String = "Medium",
     val activityLog: String = "",
+    val email: String = "",
+    val website: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )
