@@ -114,6 +114,7 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Local lead search and management with pipeline statuses (New, Contacted, Interested, Converted, Not Interested)
 - Set, change or clear a follow-up date for each saved lead
 - Edit and review notes on saved leads
+- Edit a saved lead's business name, address/area and validated 10-digit phone number without recreating the lead
 - Add comma-separated tags such as GST or Restaurant; search also matches tags
 - Set each lead priority to High, Medium or Low and filter the lead list by priority
 - Log calls, WhatsApp conversations, meetings, emails and outcomes with timestamps on each lead
