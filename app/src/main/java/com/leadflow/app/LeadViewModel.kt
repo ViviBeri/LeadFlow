@@ -61,6 +61,10 @@ class LeadViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { dao.updateNotes(lead.id, notes) }
     }
 
+    fun updateLeadTags(lead: Lead, tags: String) {
+        viewModelScope.launch { dao.updateTags(lead.id, tags) }
+    }
+
     fun updateLeadFollowUpDate(lead: Lead, date: String) {
         viewModelScope.launch { dao.updateFollowUpDate(lead.id, date) }
     }
