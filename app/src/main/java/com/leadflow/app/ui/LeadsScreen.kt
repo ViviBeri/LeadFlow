@@ -19,6 +19,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -81,7 +83,8 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                             onSend = {
                                 if (vm.prefs.delayReminder) toSend = lead else openWhatsApp(lead)
                             },
-                            onDelete = { toDelete = lead }
+                            onDelete = { toDelete = lead },
+                            onStatusChange = { status -> vm.updateLeadStatus(lead, status) }
                         )
                     }
                 }
@@ -117,7 +120,9 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit) {
+private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onStatusChange: (String) -> Unit) {
+    var statusMenuExpanded by remember { mutableStateOf(false) }
+    val statuses = listOf("New", "Contacted", "Interested", "Converted", "Not Interested")
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -132,6 +137,26 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit) {
             }
             if (lead.address.isNotBlank()) {
                 Text(lead.address, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Status: " + lead.status, style = MaterialTheme.typography.labelMedium)
+                Box {
+                    TextButton(onClick = { statusMenuExpanded = true }) { Text("Change") }
+                    DropdownMenu(
+                        expanded = statusMenuExpanded,
+                        onDismissRequest = { statusMenuExpanded = false }
+                    ) {
+                        statuses.forEach { status ->
+                            DropdownMenuItem(
+                                text = { Text(status) },
+                                onClick = {
+                                    onStatusChange(status)
+                                    statusMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Button(onClick = onSend, modifier = Modifier.weight(1f)) { Text("Send WhatsApp") }
