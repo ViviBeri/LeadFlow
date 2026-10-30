@@ -117,6 +117,7 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Add comma-separated tags such as GST or Restaurant; search also matches tags
 - Set each lead priority to High, Medium or Low and filter the lead list by priority
 - Log calls, WhatsApp conversations, meetings, emails and outcomes with timestamps on each lead
+- Open a scrollable full activity timeline for each lead, showing every logged interaction newest first
 - View pipeline counts and conversion rate on the home dashboard
 - Follow-up dashboard summaries for overdue, due-today and upcoming active leads, with tap-to-filter cards
 - Existing export utilities and WhatsApp click-to-open support
