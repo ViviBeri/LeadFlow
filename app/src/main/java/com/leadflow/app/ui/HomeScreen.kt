@@ -29,6 +29,7 @@ fun HomeScreen(
     onAdd: () -> Unit,
     onView: () -> Unit,
     onExport: () -> Unit,
+    onReports: () -> Unit,
     onSettings: () -> Unit,
     onDiscover: () -> Unit
 ) {
@@ -61,6 +62,7 @@ fun HomeScreen(
             Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) { Text("Add Lead Manually") }
             Button(onClick = onView, modifier = Modifier.fillMaxWidth()) { Text("View All Leads") }
             Button(onClick = onExport, modifier = Modifier.fillMaxWidth()) { Text("Export Data") }
+            OutlinedButton(onClick = onReports, modifier = Modifier.fillMaxWidth()) { Text("Performance Reports") }
             OutlinedButton(onClick = onSettings, modifier = Modifier.fillMaxWidth()) { Text("Settings") }
             Spacer(Modifier.weight(1f))
             Text(
