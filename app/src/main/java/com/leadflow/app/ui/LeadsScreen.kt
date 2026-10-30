@@ -60,17 +60,21 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var toEditTags by remember { mutableStateOf<Lead?>(null) }
     var editedTags by remember { mutableStateOf("") }
     var followUpFilter by remember { mutableStateOf("All") }
+    var priorityFilter by remember { mutableStateOf("All") }
+    var priorityFilterExpanded by remember { mutableStateOf(false) }
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val activeLeads = leads.filterNot { it.status == "Converted" || it.status == "Not Interested" }
     val overdueCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate < today }
     val dueTodayCount = activeLeads.count { it.followUpDate == today }
     val upcomingCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate > today }
-    val visibleLeads = when (followUpFilter) {
+    val followUpLeads = when (followUpFilter) {
         "Overdue" -> leads.filter { it.status != "Converted" && it.status != "Not Interested" && it.followUpDate.isNotBlank() && it.followUpDate < today }
         "Due today" -> leads.filter { it.status != "Converted" && it.status != "Not Interested" && it.followUpDate == today }
         "Upcoming" -> leads.filter { it.status != "Converted" && it.status != "Not Interested" && it.followUpDate.isNotBlank() && it.followUpDate > today }
         else -> leads
     }
+    val visibleLeads = if (priorityFilter == "All") followUpLeads
+        else followUpLeads.filter { it.priority == priorityFilter }
 
     fun openWhatsApp(lead: Lead) = WhatsApp.open(context, lead, vm.prefs.template)
 
@@ -106,11 +110,38 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                     Text("Showing $followUpFilter · Clear filter")
                 }
             }
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Priority:", style = MaterialTheme.typography.labelLarge)
+                Box {
+                    TextButton(onClick = { priorityFilterExpanded = true }) { Text(priorityFilter) }
+                    DropdownMenu(
+                        expanded = priorityFilterExpanded,
+                        onDismissRequest = { priorityFilterExpanded = false }
+                    ) {
+                        listOf("All", "High", "Medium", "Low").forEach { priority ->
+                            DropdownMenuItem(
+                                text = { Text(priority) },
+                                onClick = {
+                                    priorityFilter = priority
+                                    priorityFilterExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+                if (priorityFilter != "All") {
+                    TextButton(onClick = { priorityFilter = "All" }) { Text("Clear") }
+                }
+            }
             if (leads.isEmpty() || visibleLeads.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(when {
                         leads.isEmpty() -> if (query.isBlank()) "No leads yet" else "No matches"
-                        else -> "No $followUpFilter follow-ups"
+                        followUpFilter != "All" -> "No $followUpFilter follow-ups"
+                        else -> "No $priorityFilter priority leads"
                     })
                 }
             } else {
@@ -128,6 +159,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                             onEditNotes = { editedNotes = lead.notes; toEditNotes = lead },
                             onEditTags = { editedTags = lead.tags; toEditTags = lead },
                             onStatusChange = { status -> vm.updateLeadStatus(lead, status) },
+                            onPriorityChange = { priority -> vm.updateLeadPriority(lead, priority) },
                             onFollowUp = { date -> vm.updateLeadFollowUpDate(lead, date) },
                             onPickFollowUp = {
                                 val calendar = Calendar.getInstance()
@@ -231,8 +263,9 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onStatusChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
+private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onStatusChange: (String) -> Unit, onPriorityChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
     var statusMenuExpanded by remember { mutableStateOf(false) }
+    var priorityMenuExpanded by remember { mutableStateOf(false) }
     val statuses = listOf("New", "Contacted", "Interested", "Converted", "Not Interested")
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -260,6 +293,26 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEdit
             }
             TextButton(onClick = onEditTags) {
                 Text(if (lead.tags.isBlank()) "Add tags" else "Edit tags")
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Priority: " + lead.priority, style = MaterialTheme.typography.labelMedium)
+                Box {
+                    TextButton(onClick = { priorityMenuExpanded = true }) { Text("Change") }
+                    DropdownMenu(
+                        expanded = priorityMenuExpanded,
+                        onDismissRequest = { priorityMenuExpanded = false }
+                    ) {
+                        listOf("High", "Medium", "Low").forEach { priority ->
+                            DropdownMenuItem(
+                                text = { Text(priority) },
+                                onClick = {
+                                    onPriorityChange(priority)
+                                    priorityMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Status: " + lead.status, style = MaterialTheme.typography.labelMedium)
