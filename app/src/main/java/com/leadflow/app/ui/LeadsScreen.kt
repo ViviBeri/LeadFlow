@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,11 +46,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.leadflow.app.LeadViewModel
 import com.leadflow.app.data.Lead
 import com.leadflow.app.util.WhatsApp
+import com.leadflow.app.util.Validators
 
 @Composable
 fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
@@ -59,6 +62,10 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var toDelete by remember { mutableStateOf<Lead?>(null) }
     var toSend by remember { mutableStateOf<Lead?>(null) }
     var toEditNotes by remember { mutableStateOf<Lead?>(null) }
+    var toEditContact by remember { mutableStateOf<Lead?>(null) }
+    var editedName by remember { mutableStateOf("") }
+    var editedAddress by remember { mutableStateOf("") }
+    var editedPhone by remember { mutableStateOf("") }
     var editedNotes by remember { mutableStateOf("") }
     var toEditTags by remember { mutableStateOf<Lead?>(null) }
     var editedTags by remember { mutableStateOf("") }
@@ -163,6 +170,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                                 if (vm.prefs.delayReminder) toSend = lead else openWhatsApp(lead)
                             },
                             onDelete = { toDelete = lead },
+                            onEditContact = { editedName = lead.businessName; editedAddress = lead.address; editedPhone = lead.phone; toEditContact = lead },
                             onEditNotes = { editedNotes = lead.notes; toEditNotes = lead },
                             onEditTags = { editedTags = lead.tags; toEditTags = lead },
                             onAddActivity = { activityType = "Call"; activityDetails = ""; toAddActivity = lead },
@@ -202,6 +210,52 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
         )
     }
 
+
+    toEditContact?.let { lead ->
+        val phoneError = Validators.phoneError(editedPhone)
+        AlertDialog(
+            onDismissRequest = { toEditContact = null },
+            title = { Text("Edit contact details") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = editedName,
+                        onValueChange = { editedName = it },
+                        label = { Text("Business name *") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editedAddress,
+                        onValueChange = { editedAddress = it },
+                        label = { Text("Address / Area") },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editedPhone,
+                        onValueChange = { editedPhone = it.filter { ch -> ch in '0'..'9' }.take(10) },
+                        label = { Text("Phone number *") },
+                        prefix = { Text("+91 ") },
+                        isError = phoneError != null,
+                        supportingText = { Text(phoneError ?: "10-digit mobile number") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Phone),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        vm.updateLeadContactDetails(lead, editedName.trim(), editedAddress.trim(), editedPhone)
+                        toEditContact = null
+                    },
+                    enabled = editedName.isNotBlank() && phoneError == null
+                ) { Text("Save changes") }
+            },
+            dismissButton = { TextButton(onClick = { toEditContact = null }) { Text("Cancel") } }
+        )
+    }
 
     toEditNotes?.let { lead ->
         AlertDialog(
@@ -342,7 +396,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onAddActivity: () -> Unit, onViewActivity: () -> Unit, onStatusChange: (String) -> Unit, onPriorityChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
+private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditContact: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onAddActivity: () -> Unit, onViewActivity: () -> Unit, onStatusChange: (String) -> Unit, onPriorityChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
     var statusMenuExpanded by remember { mutableStateOf(false) }
     var priorityMenuExpanded by remember { mutableStateOf(false) }
     val statuses = listOf("New", "Contacted", "Interested", "Converted", "Not Interested")
@@ -358,6 +412,7 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEdit
                 )
                 Text(lead.phone, style = MaterialTheme.typography.bodyMedium)
             }
+            TextButton(onClick = onEditContact) { Text("Edit contact details") }
             if (lead.address.isNotBlank()) {
                 Text(lead.address, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
