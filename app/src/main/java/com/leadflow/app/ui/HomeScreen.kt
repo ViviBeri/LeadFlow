@@ -21,6 +21,11 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun HomeScreen(
     totalLeads: Int,
+    newLeads: Int,
+    contactedLeads: Int,
+    interestedLeads: Int,
+    convertedLeads: Int,
+    notInterestedLeads: Int,
     onAdd: () -> Unit,
     onView: () -> Unit,
     onExport: () -> Unit,
@@ -40,6 +45,16 @@ fun HomeScreen(
                 Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("$totalLeads", style = MaterialTheme.typography.displayMedium, fontWeight = FontWeight.Bold)
                     Text("leads saved")
+                }
+            }
+            Card(modifier = Modifier.fillMaxWidth()) {
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Sales pipeline", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text("New: $newLeads   ·   Contacted: $contactedLeads")
+                    Text("Interested: $interestedLeads   ·   Converted: $convertedLeads")
+                    Text("Not interested: $notInterestedLeads")
+                    val conversionRate = if (totalLeads == 0) 0 else (convertedLeads * 100) / totalLeads
+                    Text("Conversion rate: $conversionRate%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
             }
             Button(onClick = onDiscover, modifier = Modifier.fillMaxWidth()) { Text("Discover Places") }
