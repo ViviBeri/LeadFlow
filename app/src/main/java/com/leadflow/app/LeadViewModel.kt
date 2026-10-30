@@ -69,6 +69,10 @@ class LeadViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { dao.updatePriority(lead.id, priority) }
     }
 
+    fun addLeadActivity(lead: Lead, entry: String) {
+        viewModelScope.launch { dao.appendActivity(lead.id, entry) }
+    }
+
     fun updateLeadFollowUpDate(lead: Lead, date: String) {
         viewModelScope.launch { dao.updateFollowUpDate(lead.id, date) }
     }
