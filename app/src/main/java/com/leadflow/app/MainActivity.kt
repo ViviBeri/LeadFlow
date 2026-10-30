@@ -31,11 +31,17 @@ fun LeadFlowApp() {
     val nav = rememberNavController()
     val vm: LeadViewModel = viewModel()
     val count by vm.totalCount.collectAsState()
+    val leads by vm.leads.collectAsState()
 
     NavHost(navController = nav, startDestination = "home") {
         composable("home") {
             HomeScreen(
                 totalLeads = count,
+                newLeads = leads.count { it.status == "New" },
+                contactedLeads = leads.count { it.status == "Contacted" },
+                interestedLeads = leads.count { it.status == "Interested" },
+                convertedLeads = leads.count { it.status == "Converted" },
+                notInterestedLeads = leads.count { it.status == "Not Interested" },
                 onAdd = { nav.navigate("add") },
                 onView = { nav.navigate("leads") },
                 onExport = { nav.navigate("export") },
