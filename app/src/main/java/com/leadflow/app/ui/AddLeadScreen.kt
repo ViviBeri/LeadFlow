@@ -29,6 +29,8 @@ fun AddLeadScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var name by remember { mutableStateOf("") }
     var address by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var website by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var submitted by remember { mutableStateOf(false) }
 
@@ -64,6 +66,25 @@ fun AddLeadScreen(vm: LeadViewModel, onBack: () -> Unit) {
                 singleLine = true, modifier = Modifier.fillMaxWidth()
             )
             OutlinedTextField(
+                value = email,
+                onValueChange = { email = it.trim() },
+                label = { Text("Email (optional)") },
+                isError = email.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches(),
+                supportingText = { if (email.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) Text("Enter a valid email address") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
+                value = website,
+                onValueChange = { website = it.trim() },
+                label = { Text("Website (optional)") },
+                supportingText = { Text("Include https:// or http://") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedTextField(
                 value = notes, onValueChange = { notes = it },
                 label = { Text("Notes") },
                 minLines = 3, modifier = Modifier.fillMaxWidth()
@@ -71,8 +92,8 @@ fun AddLeadScreen(vm: LeadViewModel, onBack: () -> Unit) {
             Button(
                 onClick = {
                     submitted = true
-                    if (name.isNotBlank() && Validators.phoneError(phone) == null) {
-                        vm.addLead(name.trim(), address.trim(), phone, notes.trim()) {
+                    if (name.isNotBlank() && Validators.phoneError(phone) == null && (email.isBlank() || android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())) {
+                        vm.addLead(name.trim(), address.trim(), phone, notes.trim(), email.trim(), website.trim()) {
                             Toast.makeText(context, "Lead saved", Toast.LENGTH_SHORT).show()
                             onBack()
                         }
