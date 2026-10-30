@@ -26,6 +26,9 @@ interface LeadDao {
     @Query("UPDATE leads SET tags = :tags WHERE id = :leadId")
     suspend fun updateTags(leadId: Long, tags: String)
 
+    @Query("UPDATE leads SET priority = :priority WHERE id = :leadId")
+    suspend fun updatePriority(leadId: Long, priority: String)
+
     @Query("UPDATE leads SET followUpDate = :date WHERE id = :leadId")
     suspend fun updateFollowUpDate(leadId: Long, date: String)
 
