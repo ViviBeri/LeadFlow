@@ -1,5 +1,7 @@
 package com.leadflow.app.ui
 
+import android.app.DatePickerDialog
+import java.util.Calendar
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,7 +86,21 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                                 if (vm.prefs.delayReminder) toSend = lead else openWhatsApp(lead)
                             },
                             onDelete = { toDelete = lead },
-                            onStatusChange = { status -> vm.updateLeadStatus(lead, status) }
+                            onStatusChange = { status -> vm.updateLeadStatus(lead, status) },
+                            onFollowUp = { date -> vm.updateLeadFollowUpDate(lead, date) },
+                            onPickFollowUp = {
+                                val calendar = Calendar.getInstance()
+                                DatePickerDialog(
+                                    context,
+                                    { _, year, month, day ->
+                                        val date = String.format(java.util.Locale.US, "%04d-%02d-%02d", year, month + 1, day)
+                                        vm.updateLeadFollowUpDate(lead, date)
+                                    },
+                                    calendar.get(Calendar.YEAR),
+                                    calendar.get(Calendar.MONTH),
+                                    calendar.get(Calendar.DAY_OF_MONTH)
+                                ).show()
+                            }
                         )
                     }
                 }
@@ -120,7 +136,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onStatusChange: (String) -> Unit) {
+private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onStatusChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
     var statusMenuExpanded by remember { mutableStateOf(false) }
     val statuses = listOf("New", "Contacted", "Interested", "Converted", "Not Interested")
     Card(Modifier.fillMaxWidth()) {
@@ -156,6 +172,18 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onStat
                             )
                         }
                     }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    if (lead.followUpDate.isBlank()) "Follow-up: Not set" else "Follow-up: ${lead.followUpDate}",
+                    style = MaterialTheme.typography.bodySmall
+                )
+                TextButton(onClick = onPickFollowUp) {
+                    Text(if (lead.followUpDate.isBlank()) "Set date" else "Change date")
+                }
+                if (lead.followUpDate.isNotBlank()) {
+                    TextButton(onClick = { onFollowUp("") }) { Text("Clear") }
                 }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
