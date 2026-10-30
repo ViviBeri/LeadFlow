@@ -116,6 +116,8 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Edit and review notes on saved leads
 - Add comma-separated tags such as GST or Restaurant; search also matches tags
 - Set each lead priority to High, Medium or Low and filter the lead list by priority
+- Log calls, WhatsApp conversations, meetings, emails and outcomes with timestamps on each lead
+- View pipeline counts and conversion rate on the home dashboard
 - Follow-up dashboard summaries for overdue, due-today and upcoming active leads, with tap-to-filter cards
 - Existing export utilities and WhatsApp click-to-open support
 
@@ -139,6 +141,8 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - [x] Add editable notes to saved leads
 - [x] Add editable lead tags and include them in lead search
 - [x] Add editable High/Medium/Low lead priority and priority filtering
+- [x] Add timestamped activity history for calls, WhatsApp, meetings and email follow-ups
+- [x] Add home dashboard pipeline counts and conversion rate
 - [ ] Add note history and richer tag management
 - [ ] Integrate a permitted data source that supplies ratings and review counts
 - [ ] Add transparent rating/review-count-aware ranking when reliable fields are available
