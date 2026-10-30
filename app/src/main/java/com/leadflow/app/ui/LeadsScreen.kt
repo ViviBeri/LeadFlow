@@ -14,7 +14,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -60,6 +63,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var toEditTags by remember { mutableStateOf<Lead?>(null) }
     var editedTags by remember { mutableStateOf("") }
     var toAddActivity by remember { mutableStateOf<Lead?>(null) }
+    var toViewActivity by remember { mutableStateOf<Lead?>(null) }
     var activityType by remember { mutableStateOf("Call") }
     var activityDetails by remember { mutableStateOf("") }
     var followUpFilter by remember { mutableStateOf("All") }
@@ -162,6 +166,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                             onEditNotes = { editedNotes = lead.notes; toEditNotes = lead },
                             onEditTags = { editedTags = lead.tags; toEditTags = lead },
                             onAddActivity = { activityType = "Call"; activityDetails = ""; toAddActivity = lead },
+                            onViewActivity = { toViewActivity = lead },
                             onStatusChange = { status -> vm.updateLeadStatus(lead, status) },
                             onPriorityChange = { priority -> vm.updateLeadPriority(lead, priority) },
                             onFollowUp = { date -> vm.updateLeadFollowUpDate(lead, date) },
@@ -251,6 +256,40 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
         )
     }
 
+    toViewActivity?.let { lead ->
+        val entries = lead.activityLog.lines().filter { it.isNotBlank() }.asReversed()
+        AlertDialog(
+            onDismissRequest = { toViewActivity = null },
+            title = { Text("Activity history · ${lead.businessName}") },
+            text = {
+                if (entries.isEmpty()) {
+                    Text("No activity has been logged for this lead yet.")
+                } else {
+                    Column(
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text("${entries.size} entr${if (entries.size == 1) "y" else "ies"} · newest first",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary)
+                        entries.forEachIndexed { index, entry ->
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(entry, style = MaterialTheme.typography.bodyMedium)
+                                if (index != entries.lastIndex) {
+                                    androidx.compose.material3.HorizontalDivider()
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { toViewActivity = null }) { Text("Close") }
+            }
+        )
+    }
+
     toAddActivity?.let { lead ->
         AlertDialog(
             onDismissRequest = { toAddActivity = null },
@@ -303,7 +342,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onAddActivity: () -> Unit, onStatusChange: (String) -> Unit, onPriorityChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
+private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onAddActivity: () -> Unit, onViewActivity: () -> Unit, onStatusChange: (String) -> Unit, onPriorityChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
     var statusMenuExpanded by remember { mutableStateOf(false) }
     var priorityMenuExpanded by remember { mutableStateOf(false) }
     val statuses = listOf("New", "Contacted", "Interested", "Converted", "Not Interested")
@@ -336,7 +375,10 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEdit
             }
             if (lead.activityLog.isNotBlank()) {
                 Text("Recent activity:", style = MaterialTheme.typography.labelMedium)
-                Text(lead.activityLog.lines().takeLast(2).asReversed().joinToString("\n"), style = MaterialTheme.typography.bodySmall)
+                Text(lead.activityLog.lines().filter { it.isNotBlank() }.takeLast(2).asReversed().joinToString("\n"), style = MaterialTheme.typography.bodySmall)
+                TextButton(onClick = onViewActivity) {
+                    Text("View full history (${lead.activityLog.lines().count { it.isNotBlank() }})")
+                }
             }
             TextButton(onClick = onAddActivity) { Text("Add activity") }
             Row(verticalAlignment = Alignment.CenterVertically) {
