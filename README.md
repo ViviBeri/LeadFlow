@@ -146,6 +146,7 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - [x] Add editable notes to saved leads
 - [x] Add editable lead tags and include them in lead search
 - [x] Add editable High/Medium/Low lead priority and priority filtering
+- [x] Filter saved leads by pipeline status and contact availability, with a combined clear-all action
 - [x] Add timestamped activity history for calls, WhatsApp, meetings and email follow-ups
 - [x] Add home dashboard pipeline counts and conversion rate
 - [ ] Add note history and richer tag management
