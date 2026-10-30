@@ -13,5 +13,6 @@ data class Lead(
     val notes: String,
     val status: String = "New",
     val followUpDate: String = "",
+    val tags: String = "",
     val createdAt: Long = System.currentTimeMillis()
 )
