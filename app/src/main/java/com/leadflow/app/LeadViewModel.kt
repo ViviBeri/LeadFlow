@@ -46,18 +46,10 @@ class LeadViewModel(app: Application) : AndroidViewModel(app) {
         onResult: (Boolean) -> Unit
     ) {
         viewModelScope.launch {
-            val normalizedName = name.trim().lowercase()
-            val normalizedAddress = address.trim().lowercase()
-            val duplicate = dao.getAll().any { saved ->
-                saved.businessName.trim().lowercase() == normalizedName &&
-                    saved.address.trim().lowercase() == normalizedAddress
-            }
-            if (duplicate) {
-                onResult(false)
-            } else {
-                dao.insert(Lead(businessName = name, address = address, phone = phone, notes = notes))
-                onResult(true)
-            }
+            val added = dao.insertIfAbsent(
+                Lead(businessName = name, address = address, phone = phone, notes = notes)
+            )
+            onResult(added)
         }
     }
 
