@@ -188,3 +188,8 @@ LeadFlow is intended for useful discovery and informed decisions, not automated 
 ## Contributing
 
 Suggestions and contributions are welcome, especially around Android usability, search/filter design, fair ranking, permitted data-source integration, review analysis, duplicate detection and reliable exports. Features should be tested and documented before being marked complete.
+
+### Lead performance reports
+- Filter lead creation reports by Today, last 7 days, last 30 days, or All time.
+- Review pipeline status counts, high-priority lead count, and conversion rate (converted divided by leads excluding Not Interested).
+- Share a compact CSV summary from the report screen.
