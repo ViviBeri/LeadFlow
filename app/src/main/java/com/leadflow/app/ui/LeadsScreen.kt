@@ -1,6 +1,9 @@
 package com.leadflow.app.ui
 
 import android.app.DatePickerDialog
+import android.content.Intent
+import android.net.Uri
+import android.widget.Toast
 import java.util.Calendar
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -173,6 +176,15 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                             },
                             onDelete = { toDelete = lead },
                             onEditContact = { editedName = lead.businessName; editedAddress = lead.address; editedPhone = lead.phone; editedEmail = lead.email; editedWebsite = lead.website; toEditContact = lead },
+                            onEmail = { email ->
+                                runCatching { context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:$email"))) }
+                                    .onFailure { Toast.makeText(context, "No email app available", Toast.LENGTH_SHORT).show() }
+                            },
+                            onWebsite = { website ->
+                                val url = if (website.startsWith("http://") || website.startsWith("https://")) website else "https://$website"
+                                runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+                                    .onFailure { Toast.makeText(context, "Unable to open website", Toast.LENGTH_SHORT).show() }
+                            },
                             onEditNotes = { editedNotes = lead.notes; toEditNotes = lead },
                             onEditTags = { editedTags = lead.tags; toEditTags = lead },
                             onAddActivity = { activityType = "Call"; activityDetails = ""; toAddActivity = lead },
@@ -418,7 +430,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditContact: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onAddActivity: () -> Unit, onViewActivity: () -> Unit, onStatusChange: (String) -> Unit, onPriorityChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
+private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditContact: () -> Unit, onEmail: (String) -> Unit, onWebsite: (String) -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onAddActivity: () -> Unit, onViewActivity: () -> Unit, onStatusChange: (String) -> Unit, onPriorityChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
     var statusMenuExpanded by remember { mutableStateOf(false) }
     var priorityMenuExpanded by remember { mutableStateOf(false) }
     val statuses = listOf("New", "Contacted", "Interested", "Converted", "Not Interested")
@@ -434,8 +446,8 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEdit
                 )
                 Text(lead.phone, style = MaterialTheme.typography.bodyMedium)
             }
-            if (lead.email.isNotBlank()) Text("Email: ${lead.email}", style = MaterialTheme.typography.bodySmall)
-            if (lead.website.isNotBlank()) Text("Website: ${lead.website}", style = MaterialTheme.typography.bodySmall)
+            if (lead.email.isNotBlank()) TextButton(onClick = { onEmail(lead.email) }) { Text("Email · ${lead.email}", maxLines = 1, overflow = TextOverflow.Ellipsis) }
+            if (lead.website.isNotBlank()) TextButton(onClick = { onWebsite(lead.website) }) { Text("Open website · ${lead.website}", maxLines = 1, overflow = TextOverflow.Ellipsis) }
             TextButton(onClick = onEditContact) { Text("Edit contact details") }
             if (lead.address.isNotBlank()) {
                 Text(lead.address, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
