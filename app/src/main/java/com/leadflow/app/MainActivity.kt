@@ -1,6 +1,7 @@
 package com.leadflow.app
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.Composable
@@ -47,7 +48,13 @@ fun LeadFlowApp() {
                 onBack = { nav.popBackStack() },
                 onSave = { place ->
                     val notes = "Source: OpenStreetMap\nCategory: ${place.category}\nMap: ${place.mapUrl}"
-                    vm.addLead(place.name, place.address, place.phone, notes) {}
+                    vm.addDiscoveredLeadIfNew(place.name, place.address, place.phone, notes) { added ->
+                        Toast.makeText(
+                            nav.context,
+                            if (added) "Lead saved successfully" else "This lead is already saved",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
                 }
             )
         }
