@@ -11,5 +11,6 @@ data class Lead(
     val address: String,
     val phone: String,          // 10-digit Indian mobile, without +91
     val notes: String,
+    val status: String = "New",
     val createdAt: Long = System.currentTimeMillis()
 )
