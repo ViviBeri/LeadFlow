@@ -66,6 +66,8 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var editedName by remember { mutableStateOf("") }
     var editedAddress by remember { mutableStateOf("") }
     var editedPhone by remember { mutableStateOf("") }
+    var editedEmail by remember { mutableStateOf("") }
+    var editedWebsite by remember { mutableStateOf("") }
     var editedNotes by remember { mutableStateOf("") }
     var toEditTags by remember { mutableStateOf<Lead?>(null) }
     var editedTags by remember { mutableStateOf("") }
@@ -170,7 +172,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                                 if (vm.prefs.delayReminder) toSend = lead else openWhatsApp(lead)
                             },
                             onDelete = { toDelete = lead },
-                            onEditContact = { editedName = lead.businessName; editedAddress = lead.address; editedPhone = lead.phone; toEditContact = lead },
+                            onEditContact = { editedName = lead.businessName; editedAddress = lead.address; editedPhone = lead.phone; editedEmail = lead.email; editedWebsite = lead.website; toEditContact = lead },
                             onEditNotes = { editedNotes = lead.notes; toEditNotes = lead },
                             onEditTags = { editedTags = lead.tags; toEditTags = lead },
                             onAddActivity = { activityType = "Call"; activityDetails = ""; toAddActivity = lead },
@@ -213,6 +215,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 
     toEditContact?.let { lead ->
         val phoneError = Validators.phoneError(editedPhone)
+        val emailError = editedEmail.isNotBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(editedEmail).matches()
         AlertDialog(
             onDismissRequest = { toEditContact = null },
             title = { Text("Edit contact details") },
@@ -232,6 +235,25 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                         modifier = Modifier.fillMaxWidth()
                     )
                     OutlinedTextField(
+                        value = editedEmail,
+                        onValueChange = { editedEmail = it.trim() },
+                        label = { Text("Email (optional)") },
+                        isError = emailError,
+                        supportingText = { if (emailError) Text("Enter a valid email address") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = editedWebsite,
+                        onValueChange = { editedWebsite = it.trim() },
+                        label = { Text("Website (optional)") },
+                        supportingText = { Text("Include https:// or http://") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
                         value = editedPhone,
                         onValueChange = { editedPhone = it.filter { ch -> ch in '0'..'9' }.take(10) },
                         label = { Text("Phone number *") },
@@ -247,10 +269,10 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        vm.updateLeadContactDetails(lead, editedName.trim(), editedAddress.trim(), editedPhone)
+                        vm.updateLeadContactDetails(lead, editedName.trim(), editedAddress.trim(), editedPhone, editedEmail.trim(), editedWebsite.trim())
                         toEditContact = null
                     },
-                    enabled = editedName.isNotBlank() && phoneError == null
+                    enabled = editedName.isNotBlank() && phoneError == null && !emailError
                 ) { Text("Save changes") }
             },
             dismissButton = { TextButton(onClick = { toEditContact = null }) { Text("Cancel") } }
@@ -412,6 +434,8 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEdit
                 )
                 Text(lead.phone, style = MaterialTheme.typography.bodyMedium)
             }
+            if (lead.email.isNotBlank()) Text("Email: ${lead.email}", style = MaterialTheme.typography.bodySmall)
+            if (lead.website.isNotBlank()) Text("Website: ${lead.website}", style = MaterialTheme.typography.bodySmall)
             TextButton(onClick = onEditContact) { Text("Edit contact details") }
             if (lead.address.isNotBlank()) {
                 Text(lead.address, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
