@@ -111,7 +111,10 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Check for an existing lead with the same normalized business name and address before saving
 - Show save feedback for new and duplicate leads
 - Display OpenStreetMap attribution and a link to its copyright page
-- Existing local lead search, management, export utilities and WhatsApp click-to-open support
+- Local lead search and management with pipeline statuses (New, Contacted, Interested, Converted, Not Interested)
+- Set, change or clear a follow-up date for each saved lead
+- Follow-up dashboard summaries for overdue, due-today and upcoming active leads
+- Existing export utilities and WhatsApp click-to-open support
 
 **Data-source limitations:** The current discovery implementation uses OpenStreetMap listings. It does not provide Google ratings, review counts, customer review text, opening hours in the current result model, or verified business rankings. The result filter searches already-fetched listings; it is not a Google review/rating filter. Nominatim and Overpass are community services with usage policies and availability limits, so requests should be paced and a production deployment should assess service policies and a suitable hosted data provider. A successful CI build confirms compilation and APK packaging, not end-to-end network behavior on a physical phone.
 
@@ -127,7 +130,10 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - [ ] Verify search behavior and lead saving on a physical Android device
 - [ ] Improve error handling, request pacing and resilient data-source behavior
 - [ ] Add pagination or result limits for large searches
-- [ ] Add lead statuses, notes, tags and follow-up dates
+- [x] Add lead pipeline statuses and status updates
+- [x] Add per-lead follow-up date management with database migration
+- [x] Add overdue, due-today and upcoming follow-up dashboard summaries
+- [ ] Add lead tags and richer notes
 - [ ] Integrate a permitted data source that supplies ratings and review counts
 - [ ] Add transparent rating/review-count-aware ranking when reliable fields are available
 - [ ] Explore review-source permissions and feasibility for Dish Insights
