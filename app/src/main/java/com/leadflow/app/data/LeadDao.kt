@@ -29,6 +29,9 @@ interface LeadDao {
     @Query("UPDATE leads SET priority = :priority WHERE id = :leadId")
     suspend fun updatePriority(leadId: Long, priority: String)
 
+    @Query("UPDATE leads SET activityLog = CASE WHEN activityLog = '' THEN :entry ELSE activityLog || char(10) || :entry END WHERE id = :leadId")
+    suspend fun appendActivity(leadId: Long, entry: String)
+
     @Query("UPDATE leads SET followUpDate = :date WHERE id = :leadId")
     suspend fun updateFollowUpDate(leadId: Long, date: String)
 
