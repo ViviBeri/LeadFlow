@@ -57,6 +57,8 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var toSend by remember { mutableStateOf<Lead?>(null) }
     var toEditNotes by remember { mutableStateOf<Lead?>(null) }
     var editedNotes by remember { mutableStateOf("") }
+    var toEditTags by remember { mutableStateOf<Lead?>(null) }
+    var editedTags by remember { mutableStateOf("") }
     var followUpFilter by remember { mutableStateOf("All") }
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val activeLeads = leads.filterNot { it.status == "Converted" || it.status == "Not Interested" }
@@ -124,6 +126,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                             },
                             onDelete = { toDelete = lead },
                             onEditNotes = { editedNotes = lead.notes; toEditNotes = lead },
+                            onEditTags = { editedTags = lead.tags; toEditTags = lead },
                             onStatusChange = { status -> vm.updateLeadStatus(lead, status) },
                             onFollowUp = { date -> vm.updateLeadFollowUpDate(lead, date) },
                             onPickFollowUp = {
@@ -182,6 +185,36 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
         )
     }
 
+
+    toEditTags?.let { lead ->
+        AlertDialog(
+            onDismissRequest = { toEditTags = null },
+            title = { Text("Tags · ${lead.businessName}") },
+            text = {
+                OutlinedTextField(
+                    value = editedTags,
+                    onValueChange = { editedTags = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 2,
+                    placeholder = { Text("e.g. GST, Restaurant, High Priority") },
+                    supportingText = { Text("Separate tags with commas") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    val normalized = editedTags.split(",")
+                        .map { it.trim() }
+                        .filter { it.isNotBlank() }
+                        .distinctBy { it.lowercase(Locale.ROOT) }
+                        .joinToString(", ")
+                    vm.updateLeadTags(lead, normalized)
+                    toEditTags = null
+                }) { Text("Save tags") }
+            },
+            dismissButton = { TextButton(onClick = { toEditTags = null }) { Text("Cancel") } }
+        )
+    }
+
     toSend?.let { lead ->
         AlertDialog(
             onDismissRequest = { toSend = null },
@@ -198,7 +231,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onStatusChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
+private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onEditTags: () -> Unit, onStatusChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
     var statusMenuExpanded by remember { mutableStateOf(false) }
     val statuses = listOf("New", "Contacted", "Interested", "Converted", "Not Interested")
     Card(Modifier.fillMaxWidth()) {
@@ -221,6 +254,12 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEdit
             }
             TextButton(onClick = onEditNotes) {
                 Text(if (lead.notes.isBlank()) "Add notes" else "Edit notes")
+            }
+            if (lead.tags.isNotBlank()) {
+                Text("Tags: ${lead.tags}", style = MaterialTheme.typography.labelSmall)
+            }
+            TextButton(onClick = onEditTags) {
+                Text(if (lead.tags.isBlank()) "Add tags" else "Edit tags")
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Status: " + lead.status, style = MaterialTheme.typography.labelMedium)
