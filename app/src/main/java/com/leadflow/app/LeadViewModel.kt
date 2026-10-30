@@ -53,6 +53,10 @@ class LeadViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
+    fun updateLeadStatus(lead: Lead, status: String) {
+        viewModelScope.launch { dao.updateStatus(lead.id, status) }
+    }
+
     fun deleteLead(lead: Lead) {
         viewModelScope.launch { dao.delete(lead) }
     }
