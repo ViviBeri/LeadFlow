@@ -5,6 +5,8 @@ import java.util.Calendar
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -53,11 +55,18 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     val query by vm.searchText.collectAsState()
     var toDelete by remember { mutableStateOf<Lead?>(null) }
     var toSend by remember { mutableStateOf<Lead?>(null) }
+    var followUpFilter by remember { mutableStateOf("All") }
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val activeLeads = leads.filterNot { it.status == "Converted" || it.status == "Not Interested" }
     val overdueCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate < today }
     val dueTodayCount = activeLeads.count { it.followUpDate == today }
     val upcomingCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate > today }
+    val visibleLeads = when (followUpFilter) {
+        "Overdue" -> leads.filter { it.status != "Converted" && it.status != "Not Interested" && it.followUpDate.isNotBlank() && it.followUpDate < today }
+        "Due today" -> leads.filter { it.status != "Converted" && it.status != "Not Interested" && it.followUpDate == today }
+        "Upcoming" -> leads.filter { it.status != "Converted" && it.status != "Not Interested" && it.followUpDate.isNotBlank() && it.followUpDate > today }
+        else -> leads
+    }
 
     fun openWhatsApp(lead: Lead) = WhatsApp.open(context, lead, vm.prefs.template)
 
@@ -83,21 +92,29 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    FollowUpSummaryCard("Overdue", overdueCount, Modifier.weight(1f))
+                    FollowUpSummaryCard("Overdue", overdueCount, followUpFilter == "Overdue", Modifier.weight(1f)) { followUpFilter = if (followUpFilter == "Overdue") "All" else "Overdue" }
                     FollowUpSummaryCard("Due today", dueTodayCount, Modifier.weight(1f))
-                    FollowUpSummaryCard("Upcoming", upcomingCount, Modifier.weight(1f))
+                    FollowUpSummaryCard("Upcoming", upcomingCount, followUpFilter == "Upcoming", Modifier.weight(1f)) { followUpFilter = if (followUpFilter == "Upcoming") "All" else "Upcoming" }
                 }
             }
-            if (leads.isEmpty()) {
+            if (followUpFilter != "All") {
+                TextButton(onClick = { followUpFilter = "All" }, modifier = Modifier.padding(start = 8.dp)) {
+                    Text("Showing $followUpFilter · Clear filter")
+                }
+            }
+            if (leads.isEmpty() || visibleLeads.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(if (query.isBlank()) "No leads yet" else "No matches")
+                    Text(when {
+                        leads.isEmpty() -> if (query.isBlank()) "No leads yet" else "No matches"
+                        else -> "No $followUpFilter follow-ups"
+                    })
                 }
             } else {
                 LazyColumn(
                     contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(leads, key = { it.id }) { lead ->
+                    items(visibleLeads, key = { it.id }) { lead ->
                         LeadRow(
                             lead = lead,
                             onSend = {
@@ -216,8 +233,8 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onStat
 
 
 @Composable
-private fun FollowUpSummaryCard(label: String, count: Int, modifier: Modifier = Modifier) {
-    Card(modifier) {
+private fun FollowUpSummaryCard(label: String, count: Int, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Card(modifier.clickable(onClick = onClick), border = if (selected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
