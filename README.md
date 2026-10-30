@@ -116,6 +116,7 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Edit and review notes on saved leads
 - Edit a saved lead's business name, address/area and validated 10-digit phone number without recreating the lead
 - Store optional email and website details, prefill websites from OpenStreetMap discovery, and search leads by either field
+- Open a saved email address in the device's email app or launch a saved website directly from its lead card
 - Include email and website in CSV, XLSX and PDF lead exports
 - Add comma-separated tags such as GST or Restaurant; search also matches tags
 - Set each lead priority to High, Medium or Low and filter the lead list by priority
