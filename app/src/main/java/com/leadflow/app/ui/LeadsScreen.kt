@@ -55,6 +55,8 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     val query by vm.searchText.collectAsState()
     var toDelete by remember { mutableStateOf<Lead?>(null) }
     var toSend by remember { mutableStateOf<Lead?>(null) }
+    var toEditNotes by remember { mutableStateOf<Lead?>(null) }
+    var editedNotes by remember { mutableStateOf("") }
     var followUpFilter by remember { mutableStateOf("All") }
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val activeLeads = leads.filterNot { it.status == "Converted" || it.status == "Not Interested" }
@@ -121,6 +123,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                                 if (vm.prefs.delayReminder) toSend = lead else openWhatsApp(lead)
                             },
                             onDelete = { toDelete = lead },
+                            onEditNotes = { editedNotes = lead.notes; toEditNotes = lead },
                             onStatusChange = { status -> vm.updateLeadStatus(lead, status) },
                             onFollowUp = { date -> vm.updateLeadFollowUpDate(lead, date) },
                             onPickFollowUp = {
@@ -155,6 +158,30 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
         )
     }
 
+
+    toEditNotes?.let { lead ->
+        AlertDialog(
+            onDismissRequest = { toEditNotes = null },
+            title = { Text("Edit notes") },
+            text = {
+                OutlinedTextField(
+                    value = editedNotes,
+                    onValueChange = { editedNotes = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    minLines = 3,
+                    placeholder = { Text("Add call notes, requirements or next steps") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    vm.updateLeadNotes(lead, editedNotes.trim())
+                    toEditNotes = null
+                }) { Text("Save notes") }
+            },
+            dismissButton = { TextButton(onClick = { toEditNotes = null }) { Text("Cancel") } }
+        )
+    }
+
     toSend?.let { lead ->
         AlertDialog(
             onDismissRequest = { toSend = null },
@@ -171,7 +198,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
 }
 
 @Composable
-private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onStatusChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
+private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onEditNotes: () -> Unit, onStatusChange: (String) -> Unit, onFollowUp: (String) -> Unit, onPickFollowUp: () -> Unit) {
     var statusMenuExpanded by remember { mutableStateOf(false) }
     val statuses = listOf("New", "Contacted", "Interested", "Converted", "Not Interested")
     Card(Modifier.fillMaxWidth()) {
@@ -188,6 +215,12 @@ private fun LeadRow(lead: Lead, onSend: () -> Unit, onDelete: () -> Unit, onStat
             }
             if (lead.address.isNotBlank()) {
                 Text(lead.address, style = MaterialTheme.typography.bodySmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            if (lead.notes.isNotBlank()) {
+                Text(lead.notes, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            TextButton(onClick = onEditNotes) {
+                Text(if (lead.notes.isBlank()) "Add notes" else "Edit notes")
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Status: " + lead.status, style = MaterialTheme.typography.labelMedium)
