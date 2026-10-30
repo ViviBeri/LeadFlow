@@ -85,6 +85,8 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var statusFilterExpanded by remember { mutableStateOf(false) }
     var contactFilter by remember { mutableStateOf("All") }
     var contactFilterExpanded by remember { mutableStateOf(false) }
+    var sortOption by remember { mutableStateOf("Recently added") }
+    var sortExpanded by remember { mutableStateOf(false) }
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
     val activeLeads = leads.filterNot { it.status == "Converted" || it.status == "Not Interested" }
     val overdueCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate < today }
@@ -100,12 +102,22 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
         else followUpLeads.filter { it.priority == priorityFilter }
     val statusLeads = if (statusFilter == "All") priorityLeads
         else priorityLeads.filter { it.status == statusFilter }
-    val visibleLeads = when (contactFilter) {
+    val filteredLeads = when (contactFilter) {
         "Phone" -> statusLeads.filter { it.phone.isNotBlank() }
         "Email" -> statusLeads.filter { it.email.isNotBlank() }
         "Website" -> statusLeads.filter { it.website.isNotBlank() }
         "Missing contact" -> statusLeads.filter { it.phone.isBlank() && it.email.isBlank() && it.website.isBlank() }
         else -> statusLeads
+    }
+    val visibleLeads = when (sortOption) {
+        "Name A–Z" -> filteredLeads.sortedBy { it.businessName.lowercase(Locale.ROOT) }
+        "High priority first" -> filteredLeads.sortedBy {
+            when (it.priority) { "High" -> 0; "Medium" -> 1; else -> 2 }
+        }
+        "Follow-up soonest" -> filteredLeads.sortedWith(
+            compareBy<Lead> { it.followUpDate.isBlank() }.thenBy { it.followUpDate }
+        )
+        else -> filteredLeads.sortedByDescending { it.createdAt }
     }
 
     fun openWhatsApp(lead: Lead) = WhatsApp.open(context, lead, vm.prefs.template)
@@ -189,6 +201,20 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                 }
                 if (statusFilter != "All" || contactFilter != "All" || priorityFilter != "All" || followUpFilter != "All") {
                     TextButton(onClick = { statusFilter = "All"; contactFilter = "All"; priorityFilter = "All"; followUpFilter = "All" }) { Text("Clear all") }
+                }
+            }
+            Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Sort:", style = MaterialTheme.typography.labelLarge)
+                Box {
+                    TextButton(onClick = { sortExpanded = true }) { Text(sortOption) }
+                    DropdownMenu(expanded = sortExpanded, onDismissRequest = { sortExpanded = false }) {
+                        listOf("Recently added", "Name A–Z", "High priority first", "Follow-up soonest").forEach { option ->
+                            DropdownMenuItem(text = { Text(option) }, onClick = {
+                                sortOption = option
+                                sortExpanded = false
+                            })
+                        }
+                    }
                 }
             }
             if (leads.isEmpty() || visibleLeads.isEmpty()) {
