@@ -188,6 +188,12 @@ To install on an Android device, open the APK from the phone's file manager and 
 
 Source files are under `app/src/main/java/com/leadflow/app/` unless otherwise noted.
 
+## License
+
+LeadFlow is licensed under the **Apache License 2.0**. You may use, modify and distribute the project under the terms of that license. See the [LICENSE](LICENSE) file for the complete license text.
+
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 ## Responsible data use
 
 LeadFlow is intended for useful discovery and informed decisions, not automated unsolicited messaging or deceptive rankings. Data availability, review access and permitted use depend on each provider. Integrations must respect source terms, privacy requirements and applicable law. Recommendations should be transparent about their criteria, and customer reviews should not be fabricated, manipulated or misrepresented.
