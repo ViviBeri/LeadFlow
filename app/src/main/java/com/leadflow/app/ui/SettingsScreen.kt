@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -31,6 +32,10 @@ fun SettingsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     var template by remember { mutableStateOf(vm.prefs.template) }
     var reminder by remember { mutableStateOf(vm.prefs.delayReminder) }
+    val versionName = remember {
+        runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
+            .getOrNull()?.takeIf { it.isNotBlank() } ?: "Version unavailable"
+    }
 
     LfScaffold(title = "Settings", onBack = onBack) { padding ->
         Column(
@@ -63,6 +68,34 @@ fun SettingsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                 }
                 Switch(checked = reminder, onCheckedChange = { reminder = it; vm.prefs.delayReminder = it })
             }
+
+            HorizontalDivider()
+
+            Text("About LeadFlow", style = MaterialTheme.typography.titleLarge)
+            Text(
+                "Discover local businesses, organize prospects and manage follow-ups in one place.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text("LeadFlow · $versionName", style = MaterialTheme.typography.labelLarge)
+            Text("What you can do", style = MaterialTheme.typography.titleSmall)
+            Text("• Discover nearby businesses by category and location")
+            Text("• Save prospects and manage pipeline status, priority and follow-up dates")
+            Text("• Record notes and activity history")
+            Text("• Filter, sort and export saved leads")
+            Text("• Open email, website and WhatsApp actions manually")
+            Text("Data and privacy", style = MaterialTheme.typography.titleSmall)
+            Text(
+                "Place discovery currently uses OpenStreetMap Nominatim and Overpass. Search results are public map listings; ratings, review counts and customer review text are not currently provided by this integration.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                "Saved leads and preferences are stored locally on this device. WhatsApp messages are opened for you to review and send; LeadFlow does not send messages automatically.",
+                style = MaterialTheme.typography.bodySmall
+            )
+            Text(
+                "OpenStreetMap data is © OpenStreetMap contributors. Map data is available under the Open Database License (ODbL).",
+                style = MaterialTheme.typography.bodySmall
+            )
         }
     }
 }
