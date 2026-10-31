@@ -190,7 +190,7 @@ Source files are under `app/src/main/java/com/leadflow/app/` unless otherwise no
 
 ## License
 
-LeadFlow is licensed under the **Apache License 2.0**. You may use, modify and distribute the project under the terms of that license. See the [LICENSE](LICENSE) file for the complete license text.
+LeadFlow is licensed under the **Apache License 2.0**. You may use, modify and distribute the project under the terms of that license. See the [LICENSE](LICENSE) file for the complete license text. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for the generated inventory of third-party runtime dependencies and their published licence metadata.
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 
