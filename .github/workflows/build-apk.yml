@@ -16,6 +16,14 @@ jobs:
         with:
           gradle-version: 8.2
       - run: gradle assembleDebug --stacktrace
+      - name: Generate third-party dependency license report
+        run: gradle :app:generateLicenseReport --stacktrace
+      - name: Upload dependency license report
+        uses: actions/upload-artifact@v4
+        with:
+          name: LeadFlow-third-party-license-report
+          path: app/build/reports/dependency-license/**
+          if-no-files-found: error
       - uses: actions/upload-artifact@v4
         with:
           name: LeadFlow-debug-apk
