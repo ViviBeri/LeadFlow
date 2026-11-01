@@ -2,7 +2,10 @@ name: Build APK
 on:
   push:
     branches: [main, master, 'fix/**', 'test/**']
-  pull_request:\n    branches: [main, master]\n    types: [opened, synchronize, reopened]\n  workflow_dispatch:
+  pull_request:
+    branches: [main, master]
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
