@@ -3,6 +3,7 @@ package com.leadflow.app.util
 import android.content.ContentUris
 import android.content.ContentValues
 import android.content.Context
+import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
@@ -29,16 +30,17 @@ object FileStore {
             val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
             val relPath = Environment.DIRECTORY_DOWNLOADS + "/LeadFlow"
 
-            // Remove an older copy so we don't end up with "leads (1).csv".
+            // Keep the previous export until the replacement has been written successfully.
+            val previousCopies = mutableListOf<Uri>()
             resolver.query(
                 collection,
                 arrayOf(MediaStore.Downloads._ID),
                 "${MediaStore.Downloads.DISPLAY_NAME}=? AND ${MediaStore.Downloads.RELATIVE_PATH}=?",
                 arrayOf(fileName, "$relPath/"),
                 null
-            )?.use { c ->
-                while (c.moveToNext()) {
-                    resolver.delete(ContentUris.withAppendedId(collection, c.getLong(0)), null, null)
+            )?.use { cursor ->
+                while (cursor.moveToNext()) {
+                    previousCopies += ContentUris.withAppendedId(collection, cursor.getLong(0))
                 }
             }
 
@@ -47,14 +49,21 @@ object FileStore {
                 put(MediaStore.Downloads.MIME_TYPE, mime)
                 put(MediaStore.Downloads.RELATIVE_PATH, relPath)
             }
-            val uri = resolver.insert(collection, values) ?: return false
-            return runWithCleanupOnFailure(
-                resource = uri,
+            val newUri = resolver.insert(collection, values) ?: return false
+            val saved = runWithCleanupOnFailure(
+                resource = newUri,
                 action = {
-                    resolver.openOutputStream(uri)?.use { it.write(bytes) } != null
+                    resolver.openOutputStream(newUri)?.use { it.write(bytes) } != null
                 },
                 cleanup = { failedUri -> resolver.delete(failedUri, null, null) }
             )
+            if (!saved) return false
+
+            // Only replace older copies after the new export is complete.
+            previousCopies.forEach { oldUri ->
+                runCatching { resolver.delete(oldUri, null, null) }
+            }
+            return true
         } else {
             // Android 7-9: classic file access (needs WRITE_EXTERNAL_STORAGE granted).
             @Suppress("DEPRECATION")
