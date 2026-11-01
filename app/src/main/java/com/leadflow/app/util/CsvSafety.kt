@@ -9,11 +9,7 @@ package com.leadflow.app.util
  */
 internal fun safeCsvCell(value: String): String {
     val firstSignificant = value.firstOrNull { !it.isWhitespace() && !it.isISOControl() }
-    return if (firstSignificant in setOf('=', '+', '-', '@') ||
-        value.firstOrNull() in setOf('\t', '\r', '\n')
-    ) {
-        "'$value"
-    } else {
-        value
-    }
+    val startsWithFormula = firstSignificant?.let { it in setOf('=', '+', '-', '@') } == true
+    val startsWithControl = value.firstOrNull()?.let { it in setOf('\t', '\r', '\n') } == true
+    return if (startsWithFormula || startsWithControl) "'$value" else value
 }
