@@ -48,8 +48,13 @@ object FileStore {
                 put(MediaStore.Downloads.RELATIVE_PATH, relPath)
             }
             val uri = resolver.insert(collection, values) ?: return false
-            resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return false
-            return true
+            return runWithCleanupOnFailure(
+                resource = uri,
+                action = {
+                    resolver.openOutputStream(uri)?.use { it.write(bytes) } != null
+                },
+                cleanup = { failedUri -> resolver.delete(failedUri, null, null) }
+            )
         } else {
             // Android 7-9: classic file access (needs WRITE_EXTERNAL_STORAGE granted).
             @Suppress("DEPRECATION")
