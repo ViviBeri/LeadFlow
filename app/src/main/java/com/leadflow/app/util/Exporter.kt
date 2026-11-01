@@ -22,7 +22,10 @@ object Exporter {
 
     // ---------------------------------------------------------------- CSV
     fun toCsv(leads: List<Lead>): ByteArray {
-        fun q(s: String): String {\n            val safe = safeCsvCell(s)\n            return "\"" + safe.replace("\"", "\"\"") + "\""\n        }
+        fun q(s: String): String {
+            val safe = safeCsvCell(s)
+            return "\"" + safe.replace("\"", "\"\"") + "\""
+        }
         val sb = StringBuilder("\uFEFF") // BOM so Excel reads Tamil/Unicode correctly
         sb.append(HEADERS.joinToString(",") { q(it) }).append("\r\n")
         leads.forEach { l -> sb.append(row(l).joinToString(",") { q(it) }).append("\r\n") }
