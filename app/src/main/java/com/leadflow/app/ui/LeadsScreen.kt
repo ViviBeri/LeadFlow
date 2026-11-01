@@ -346,8 +346,21 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        vm.updateLeadContactDetails(lead, editedName.trim(), editedAddress.trim(), editedPhone, editedEmail.trim(), editedWebsite.trim())
-                        toEditContact = null
+                        vm.updateLeadContactDetails(
+                            lead,
+                            editedName.trim(),
+                            editedAddress.trim(),
+                            editedPhone,
+                            editedEmail.trim(),
+                            editedWebsite.trim()
+                        ) { updated ->
+                            if (updated) {
+                                Toast.makeText(context, "Contact details updated", Toast.LENGTH_SHORT).show()
+                                toEditContact = null
+                            } else {
+                                Toast.makeText(context, "Another lead already has this business name and address", Toast.LENGTH_LONG).show()
+                            }
+                        }
                     },
                     enabled = editedName.isNotBlank() && phoneError == null && !emailError
                 ) { Text("Save changes") }

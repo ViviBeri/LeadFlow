@@ -20,6 +20,28 @@ interface LeadDao {
     @Query("UPDATE leads SET businessName = :name, address = :address, phone = :phone, email = :email, website = :website WHERE id = :leadId")
     suspend fun updateContactDetails(leadId: Long, name: String, address: String, phone: String, email: String, website: String)
 
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM leads " +
+        "WHERE id != :excludedLeadId " +
+        "AND LOWER(TRIM(businessName)) = LOWER(TRIM(:name)) " +
+        "AND LOWER(TRIM(address)) = LOWER(TRIM(:address)) LIMIT 1)"
+    )
+    suspend fun existsByNameAndAddressExcludingId(name: String, address: String, excludedLeadId: Long): Boolean
+
+    @Transaction
+    suspend fun updateContactDetailsIfUnique(
+        leadId: Long,
+        name: String,
+        address: String,
+        phone: String,
+        email: String,
+        website: String
+    ): Boolean {
+        if (existsByNameAndAddressExcludingId(name, address, leadId)) return false
+        updateContactDetails(leadId, name, address, phone, email, website)
+        return true
+    }
+
     @Query("UPDATE leads SET status = :status WHERE id = :leadId")
     suspend fun updateStatus(leadId: Long, status: String)
 
