@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface LeadDao {
-    /** Empty query matches everything; otherwise matches business name OR address (area). */
+    /** Empty query matches everything; otherwise matches business name, address, email, website or tags. */
     @Query(
         "SELECT * FROM leads " +
         "WHERE businessName LIKE '%' || :q || '%' OR address LIKE '%' || :q || '%' OR email LIKE '%' || :q || '%' OR website LIKE '%' || :q || '%' OR tags LIKE '%' || :q || '%' " +
