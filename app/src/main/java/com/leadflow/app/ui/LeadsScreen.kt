@@ -140,7 +140,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                     }
                 }
             )
-            if (leads.isNotEmpty()) {
+            if (allLeads.isNotEmpty()) {
                 Row(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
