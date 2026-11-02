@@ -12,13 +12,38 @@ interface LeadDao {
     /** Empty query matches everything; otherwise matches business name OR address (area). */
     @Query(
         "SELECT * FROM leads " +
-        "WHERE businessName LIKE '%' || :q || '%' OR address LIKE '%' || :q || '%' OR email LIKE '%' || :q || '%' OR website LIKE '%' || :q || '%' " +
+        "WHERE businessName LIKE '%' || :q || '%' OR address LIKE '%' || :q || '%' OR email LIKE '%' || :q || '%' OR website LIKE '%' || :q || '%' OR tags LIKE '%' || :q || '%' " +
         "ORDER BY createdAt DESC"
     )
     fun search(q: String): Flow<List<Lead>>
 
     @Query("UPDATE leads SET businessName = :name, address = :address, phone = :phone, email = :email, website = :website WHERE id = :leadId")
     suspend fun updateContactDetails(leadId: Long, name: String, address: String, phone: String, email: String, website: String)
+
+    @Query(
+        "SELECT EXISTS(SELECT 1 FROM leads " +
+        "WHERE id != :leadId " +
+        "AND LOWER(TRIM(businessName)) = LOWER(TRIM(:name)) " +
+        "AND LOWER(TRIM(address)) = LOWER(TRIM(:address)) LIMIT 1)"
+    )
+    suspend fun existsByNameAndAddressExcludingId(name: String, address: String, leadId: Long): Boolean
+
+    @Query("UPDATE leads SET businessName = :name, address = :address, phone = :phone, email = :email, website = :website WHERE id = :leadId")
+    suspend fun updateContactDetails(leadId: Long, name: String, address: String, phone: String, email: String, website: String)
+
+    @Transaction
+    suspend fun updateContactDetailsIfUnique(
+        leadId: Long,
+        name: String,
+        address: String,
+        phone: String,
+        email: String,
+        website: String
+    ): Boolean {
+        if (existsByNameAndAddressExcludingId(name, address, leadId)) return false
+        updateContactDetails(leadId, name, address, phone, email, website)
+        return true
+    }
 
     @Query("UPDATE leads SET status = :status WHERE id = :leadId")
     suspend fun updateStatus(leadId: Long, status: String)
