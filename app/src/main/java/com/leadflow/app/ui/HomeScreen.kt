@@ -54,7 +54,8 @@ fun HomeScreen(
                     Text("New: $newLeads   ·   Contacted: $contactedLeads")
                     Text("Interested: $interestedLeads   ·   Converted: $convertedLeads")
                     Text("Not interested: $notInterestedLeads")
-                    val conversionRate = if (totalLeads == 0) 0 else (convertedLeads * 100) / totalLeads
+                    val activeLeads = totalLeads - notInterestedLeads
+                    val conversionRate = if (activeLeads == 0) 0 else (convertedLeads * 100) / activeLeads
                     Text("Conversion rate: $conversionRate%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                 }
             }
