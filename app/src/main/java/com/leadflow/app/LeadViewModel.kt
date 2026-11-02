@@ -31,10 +31,27 @@ class LeadViewModel(app: Application) : AndroidViewModel(app) {
 
     fun setQuery(q: String) { query.value = q }
 
-    fun addLead(name: String, address: String, phone: String, notes: String, email: String = "", website: String = "", onDone: () -> Unit) {
+    fun addLead(
+        name: String,
+        address: String,
+        phone: String,
+        notes: String,
+        email: String = "",
+        website: String = "",
+        onResult: (Boolean) -> Unit
+    ) {
         viewModelScope.launch {
-            dao.insert(Lead(businessName = name, address = address, phone = phone, notes = notes, email = email, website = website))
-            onDone()
+            val added = dao.insertIfAbsent(
+                Lead(
+                    businessName = name.trim(),
+                    address = address.trim(),
+                    phone = phone,
+                    notes = notes,
+                    email = email,
+                    website = website
+                )
+            )
+            onResult(added)
         }
     }
 
