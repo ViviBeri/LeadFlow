@@ -93,9 +93,13 @@ fun AddLeadScreen(vm: LeadViewModel, onBack: () -> Unit) {
                 onClick = {
                     submitted = true
                     if (name.isNotBlank() && Validators.phoneError(phone) == null && (email.isBlank() || android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches())) {
-                        vm.addLead(name.trim(), address.trim(), phone, notes.trim(), email.trim(), website.trim()) {
-                            Toast.makeText(context, "Lead saved", Toast.LENGTH_SHORT).show()
-                            onBack()
+                        vm.addLead(name.trim(), address.trim(), phone, notes.trim(), email.trim(), website.trim()) { added ->
+                            Toast.makeText(
+                                context,
+                                if (added) "Lead saved" else "This lead is already saved",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            if (added) onBack()
                         }
                     }
                 },
