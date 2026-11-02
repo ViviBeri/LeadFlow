@@ -61,6 +61,7 @@ import com.leadflow.app.util.Validators
 fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
     val leads by vm.leads.collectAsState()
+    val allLeads by vm.allLeadsFlow.collectAsState()
     val query by vm.searchText.collectAsState()
     var toDelete by remember { mutableStateOf<Lead?>(null) }
     var toSend by remember { mutableStateOf<Lead?>(null) }
@@ -88,7 +89,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     var sortOption by remember { mutableStateOf("Recently added") }
     var sortExpanded by remember { mutableStateOf(false) }
     val today = remember { SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date()) }
-    val activeLeads = leads.filterNot { it.status == "Converted" || it.status == "Not Interested" }
+    val activeLeads = allLeads.filterNot { it.status == "Converted" || it.status == "Not Interested" }
     val overdueCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate < today }
     val dueTodayCount = activeLeads.count { it.followUpDate == today }
     val upcomingCount = activeLeads.count { it.followUpDate.isNotBlank() && it.followUpDate > today }
@@ -129,7 +130,7 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                 onValueChange = { vm.setQuery(it) },
                 modifier = Modifier.fillMaxWidth().padding(12.dp),
                 singleLine = true,
-                placeholder = { Text("Search by name or area") },
+                placeholder = { Text("Search name, area, email, website or tags") },
                 leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                 trailingIcon = {
                     if (query.isNotEmpty()) {
@@ -346,8 +347,14 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
             confirmButton = {
                 TextButton(
                     onClick = {
-                        vm.updateLeadContactDetails(lead, editedName.trim(), editedAddress.trim(), editedPhone, editedEmail.trim(), editedWebsite.trim())
-                        toEditContact = null
+                        vm.updateLeadContactDetails(lead, editedName.trim(), editedAddress.trim(), editedPhone, editedEmail.trim(), editedWebsite.trim()) { updated ->
+                            Toast.makeText(
+                                context,
+                                if (updated) "Contact details updated" else "Another lead already uses this business name and address",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            if (updated) toEditContact = null
+                        }
                     },
                     enabled = editedName.isNotBlank() && phoneError == null && !emailError
                 ) { Text("Save changes") }
