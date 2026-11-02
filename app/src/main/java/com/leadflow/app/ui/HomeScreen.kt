@@ -54,8 +54,10 @@ fun HomeScreen(
                     Text("New: $newLeads   ·   Contacted: $contactedLeads")
                     Text("Interested: $interestedLeads   ·   Converted: $convertedLeads")
                     Text("Not interested: $notInterestedLeads")
-                    val conversionRate = if (totalLeads == 0) 0 else (convertedLeads * 100) / totalLeads
+                    val eligibleLeads = totalLeads - notInterestedLeads
+                    val conversionRate = if (eligibleLeads <= 0) 0 else (convertedLeads * 100) / eligibleLeads
                     Text("Conversion rate: $conversionRate%", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text("Converted ÷ leads excluding Not Interested", style = MaterialTheme.typography.bodySmall)
                 }
             }
             Button(onClick = onDiscover, modifier = Modifier.fillMaxWidth()) { Text("Discover Places") }
