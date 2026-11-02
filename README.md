@@ -8,6 +8,13 @@ LeadFlow is a business discovery and local exploration concept for Android. It i
   <img src="https://raw.githubusercontent.com/ViviBeri/LeadFlow/main/readme-hero.svg" alt="LeadFlow project banner" width="100%" />
 </p>
 
+---
+
+## Support this project
+
+If this project is useful to you, consider [sponsoring my open-source work](https://github.com/sponsors/ViviBeri). Your support helps fund ongoing maintenance, testing, documentation, and future improvements.
+
+
 ## One platform, two ways to discover
 
 ### LeadFlow for Business — find relevant leads
