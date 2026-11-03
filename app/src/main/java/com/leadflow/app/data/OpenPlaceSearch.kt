@@ -125,7 +125,9 @@ object OpenPlaceSearch {
             "supermarket" in value || "grocery" in value -> listOf("""["shop"="supermarket"]""")
             "salon" in value -> listOf("""["shop"="hairdresser"]""")
             "hospital" in value -> listOf("""["amenity"="hospital"]""")
-            else -> listOf("""["name"~".",i]""")
+            else -> throw IllegalArgumentException(
+                "Unsupported category. Try restaurant, hotel, cafe, bakery, bar, pharmacy, supermarket, salon, or hospital."
+            )
         }
     }
 
