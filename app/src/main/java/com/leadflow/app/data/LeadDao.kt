@@ -42,6 +42,9 @@ interface LeadDao {
     fun observeCount(): Flow<Int>
 
     @Query("SELECT * FROM leads ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<Lead>>
+
+    @Query("SELECT * FROM leads ORDER BY createdAt DESC")
     suspend fun getAll(): List<Lead>
 
     @Query(
