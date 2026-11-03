@@ -19,6 +19,7 @@ import com.leadflow.app.ui.LeadFlowTheme
 import com.leadflow.app.ui.LeadsScreen
 import com.leadflow.app.ui.ReportsScreen
 import com.leadflow.app.ui.SettingsScreen
+import com.leadflow.app.util.PhoneFormat
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -55,8 +56,12 @@ fun LeadFlowApp() {
             DiscoveryScreen(
                 onBack = { nav.popBackStack() },
                 onSave = { place ->
-                    val notes = "Source: OpenStreetMap\nCategory: ${place.category}\nMap: ${place.mapUrl}"
-                    vm.addDiscoveredLeadIfNew(place.name, place.address, place.phone, notes, place.website) { added ->
+                    val mobile = PhoneFormat.toIndianMobile(place.phone)
+                    val notes = buildString {
+                        append("Source: OpenStreetMap\nCategory: ${place.category}\nMap: ${place.mapUrl}")
+                        if (mobile.isEmpty() && place.phone.isNotBlank()) append("\nListed phone (not a mobile): ${place.phone}")
+                    }
+                    vm.addDiscoveredLeadIfNew(place.name, place.address, mobile, notes, place.website) { added ->
                         Toast.makeText(
                             nav.context,
                             if (added) "Lead saved successfully" else "This lead is already saved",
