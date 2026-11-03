@@ -147,6 +147,7 @@ object Exporter {
             val maxLines = cells.maxOfOrNull { it.size } ?: 1
             var offset = 0
             while (offset < maxLines) {
+                if (pageH - 32f - y < 13f) newPage()
                 val available = ((pageH - 32f - y) / 13f).toInt().coerceAtLeast(1)
                 val chunk = minOf(available, maxLines - offset)
                 cells.forEachIndexed { column, lines ->
