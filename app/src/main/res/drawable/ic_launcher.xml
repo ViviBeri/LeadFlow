@@ -1,12 +1,68 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="96dp"
-    android:height="96dp"
-    android:viewportWidth="96"
-    android:viewportHeight="96">
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Deep midnight glass base -->
+    <path android:fillColor="#071923" android:pathData="M0,0h108v108h-108z" />
     <path
-        android:fillColor="#128C7E"
-        android:pathData="M0,0h96v96h-96z" />
+        android:fillColor="#102C38"
+        android:pathData="M13,3h82c5.5,0 10,4.5 10,10v82c0,5.5 -4.5,10 -10,10h-82c-5.5,0 -10,-4.5 -10,-10v-82c0,-5.5 4.5,-10 10,-10z" />
+    <path
+        android:fillColor="#183D49"
+        android:strokeColor="#63E9E2"
+        android:strokeAlpha="0.85"
+        android:strokeWidth="1.6"
+        android:pathData="M13,3h82c5.5,0 10,4.5 10,10v82c0,5.5 -4.5,10 -10,10h-82c-5.5,0 -10,-4.5 -10,-10v-82c0,-5.5 4.5,-10 10,-10z" />
+    <!-- Glass highlight -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M48,22C33.6,22 22,32.3 22,45c0,6.2 2.8,11.8 7.3,16L26,74l13,-4.6c2.8,1 5.8,1.6 9,1.6 14.4,0 26,-10.3 26,-23S62.4,22 48,22z" />
+        android:fillAlpha="0.12"
+        android:pathData="M13,5h43L5,56V13c0,-4.4 3.6,-8 8,-8z" />
+    <!-- Map plane -->
+    <path
+        android:fillColor="#0B202B"
+        android:strokeColor="#8CEAF0"
+        android:strokeAlpha="0.85"
+        android:strokeWidth="1.8"
+        android:pathData="M18,75l20,-9 28,5 24,-10v25l-24,10 -28,-5 -20,9z" />
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#8CEAF0"
+        android:strokeAlpha="0.7"
+        android:strokeWidth="1.4"
+        android:pathData="M38,66v25M66,71v25M18,87l20,-9 28,5 24,-10" />
+    <!-- Location pin -->
+    <path
+        android:fillColor="#00B978"
+        android:strokeColor="#B8FFF0"
+        android:strokeWidth="1.8"
+        android:pathData="M54,17c-13,0 -23,10 -23,23 0,16 23,39 23,39s23,-23 23,-39c0,-13 -10,-23 -23,-23z" />
+    <path
+        android:fillColor="#073B3A"
+        android:strokeColor="#72FFE1"
+        android:strokeWidth="1.2"
+        android:pathData="M54,25c-8.5,0 -15,6.5 -15,15s6.5,15 15,15 15,-6.5 15,-15 -6.5,-15 -15,-15z" />
+    <!-- Storefront -->
+    <path
+        android:fillColor="#F4FFFF"
+        android:pathData="M42,36l3,-7h18l3,7v3c0,2.5 -2,4.5 -4.5,4.5 -1.8,0 -3.4,-1 -4.1,-2.5 -0.8,1.5 -2.3,2.5 -4.1,2.5s-3.4,-1 -4.1,-2.5c-0.8,1.5 -2.3,2.5 -4.1,2.5 -2.5,0 -4.5,-2 -4.5,-4.5z" />
+    <path
+        android:fillColor="#D9FFF4"
+        android:pathData="M44,43h20v12h-20z" />
+    <path
+        android:fillColor="#0B4C49"
+        android:pathData="M51,47h7v8h-7z" />
+    <!-- Growth signal -->
+    <path
+        android:fillColor="#55FF75"
+        android:pathData="M78,53h5v11h-5zM86,47h5v17h-5zM94,40h5v24h-5z" />
+    <path
+        android:fillColor="#A8FF78"
+        android:pathData="M77,49l12,-8 8,-7 0,5 7,-1 -1,5 -9,1 -1,-5 -13,9z" />
+    <!-- Subtle lower glow -->
+    <path
+        android:fillColor="#00E6A0"
+        android:fillAlpha="0.16"
+        android:pathData="M25,98h58v3h-58z" />
 </vector>
