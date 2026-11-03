@@ -85,9 +85,13 @@ object OpenPlaceSearch {
                 try {
                     return postOverpass(endpoint, query)
                 } catch (e: Exception) {
+                    val status = (e as? OverpassHttpException)?.statusCode
+                    if (status != null && status != 408 && status != 429 && status !in 500..599) {
+                        throw IOException("Overpass rejected the search request (HTTP $status). Please check the category or try again later.")
+                    }
                     val detail = e.message?.take(140) ?: e.javaClass.simpleName
                     failures += endpoint.substringAfter("https://").substringBefore("/") + ": " + detail
-                    if (attempt == 0) Thread.sleep(700)
+                    if (attempt == 0) Thread.sleep(if (status == 429) 2000L else 1000L)
                 }
             }
         }
@@ -110,6 +114,8 @@ object OpenPlaceSearch {
         return output.toString(Charsets.UTF_8.name())
     }
 
+    private class OverpassHttpException(val statusCode: Int) : IOException("HTTP $statusCode")
+
     private fun postOverpass(endpoint: String, query: String): String {
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
@@ -127,7 +133,7 @@ object OpenPlaceSearch {
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
             if (status !in 200..299) {
                 stream?.close()
-                throw IOException("HTTP " + status)
+                throw OverpassHttpException(status)
             }
             return stream?.use { readBoundedResponse(it, MAX_OVERPASS_RESPONSE_BYTES) }.orEmpty()
         } finally { connection.disconnect() }
