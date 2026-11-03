@@ -74,8 +74,11 @@ object OpenPlaceSearch {
     private fun requestOverpass(query: String): String {
         // Public instances are best-effort. Try POST, then GET on each global mirror.
         val endpoints = listOf(
+            // Public instances can be temporarily overloaded or unreachable from mobile networks.
             "https://overpass-api.de/api/interpreter",
+            "https://lz4.overpass-api.de/api/interpreter",
             "https://overpass.private.coffee/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter",
             "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
         )
         val failures = mutableListOf<String>()
@@ -101,8 +104,8 @@ object OpenPlaceSearch {
             }
         }
         throw IOException(
-            "OpenStreetMap search failed. Tried POST and GET on multiple Overpass servers. " +
-                failures.joinToString(" | ")
+            "OpenStreetMap place search is temporarily unavailable. All configured search servers " +
+                "failed (" + failures.size + " attempts). Check your internet connection and try again in a few minutes."
         )
     }
 
