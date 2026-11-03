@@ -41,7 +41,14 @@ object OpenPlaceSearch {
             """.trimIndent()
         }
         val query = "[out:json][timeout:15];\n(\n$clauses\n);\nout center tags;"
-        val json = JSONObject(requestOverpass(query))
+        val overpassResponse = try {
+            requestOverpass(query)
+        } catch (overpassError: Exception) {
+            // Photon is an independent OSM-backed provider. Use it when every
+            // Overpass mirror is unavailable, rather than failing the whole search.
+            return searchWithPhoton(category, location, lat, lon, radiusMeters)
+        }
+        val json = JSONObject(overpassResponse)
         val elements = json.optJSONArray("elements") ?: return emptyList()
         val results = ArrayList<PlaceResult>()
         val seen = HashSet<String>()
@@ -180,6 +187,83 @@ object OpenPlaceSearch {
         } finally {
             connection.disconnect()
         }
+    }
+
+    private fun searchWithPhoton(
+        category: String,
+        location: String,
+        latitude: Double,
+        longitude: Double,
+        radiusMeters: Int
+    ): List<PlaceResult> {
+        val osmTag = when {
+            category.contains("restaurant", true) || category.contains("food", true) -> "amenity:restaurant"
+            category.contains("hotel", true) || category.contains("lodging", true) -> "tourism:hotel"
+            category.contains("cafe", true) || category.contains("café", true) || category.contains("coffee", true) -> "amenity:cafe"
+            category.contains("bakery", true) -> "shop:bakery"
+            category.contains("bar", true) -> "amenity:bar"
+            category.contains("pharmacy", true) -> "amenity:pharmacy"
+            category.contains("supermarket", true) || category.contains("grocery", true) -> "shop:supermarket"
+            category.contains("salon", true) -> "shop:hairdresser"
+            category.contains("hospital", true) -> "amenity:hospital"
+            else -> null
+        }
+        val params = buildString {
+            append("lon=").append(longitude)
+            append("&lat=").append(latitude)
+            append("&radius=").append((radiusMeters / 1000.0).coerceAtLeast(0.5))
+            append("&limit=50")
+            if (osmTag != null) append("&osm_tag=").append(URLEncoder.encode(osmTag, Charsets.UTF_8.name()))
+        }
+        val response = requestText("https://photon.komoot.io/reverse?$params")
+        val features = JSONObject(response).optJSONArray("features") ?: return emptyList()
+        val results = ArrayList<PlaceResult>()
+        val seen = HashSet<String>()
+        for (i in 0 until features.length()) {
+            val feature = features.optJSONObject(i) ?: continue
+            val properties = feature.optJSONObject("properties") ?: continue
+            val name = properties.optString("name").trim()
+            if (name.isBlank()) continue
+            val geometry = feature.optJSONObject("geometry") ?: continue
+            val coordinates = geometry.optJSONArray("coordinates") ?: continue
+            if (coordinates.length() < 2) continue
+            val placeLon = coordinates.optDouble(0, Double.NaN)
+            val placeLat = coordinates.optDouble(1, Double.NaN)
+            if (!placeLat.isFinite() || !placeLon.isFinite()) continue
+            if (distanceMeters(latitude, longitude, placeLat, placeLon) > radiusMeters) continue
+            val address = listOf(
+                properties.optString("housenumber"),
+                properties.optString("street"),
+                properties.optString("district"),
+                properties.optString("city"),
+                properties.optString("state")
+            ).filter { it.isNotBlank() }.distinct().joinToString(", ").ifBlank { location }
+            if (!seen.add("$name|$address".lowercase())) continue
+            val extra = properties.optJSONObject("extra") ?: JSONObject()
+            val type = properties.optString("osm_value").ifBlank { category }
+            results.add(
+                PlaceResult(
+                    name = name,
+                    category = type.replace('_', ' '),
+                    address = address,
+                    phone = extra.optString("phone").ifBlank { extra.optString("contact:phone") },
+                    website = extra.optString("website").ifBlank { extra.optString("contact:website") },
+                    latitude = placeLat,
+                    longitude = placeLon
+                )
+            )
+        }
+        return results.sortedBy { it.name.lowercase() }
+    }
+
+    private fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val earthRadius = 6371000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = kotlin.math.sin(dLat / 2) * kotlin.math.sin(dLat / 2) +
+            kotlin.math.cos(Math.toRadians(lat1)) * kotlin.math.cos(Math.toRadians(lat2)) *
+            kotlin.math.sin(dLon / 2) * kotlin.math.sin(dLon / 2)
+        return 2 * earthRadius * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
     }
 
     private fun categoryFilters(category: String): List<String> {
