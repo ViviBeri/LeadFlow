@@ -114,8 +114,8 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 
 **Implemented in the app:**
 - Home, Discover Places, Add Lead, Leads, Export and Settings screens
-- Search places by category, typed location and configurable radius (500–25,000 metres)
-- Initial category coverage for restaurants, hotels/guest houses, cafés, bakeries, bars, pharmacies, supermarkets, salons and hospitals
+- Search places by category, typed location and configurable radius (500–25,000 metres); lodging searches include hotels, guest houses, hostels, motels, tourism apartments and chalets where those OpenStreetMap tags are available
+- Initial category coverage for restaurants, hotels, guest houses, hostels, motels, serviced apartments, cafés, bakeries, bars, pharmacies, supermarkets, salons and hospitals
 - Filter fetched results by name, address or category
 - Sort results by name or category
 - View available address, phone number and website details
@@ -139,7 +139,7 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Follow-up dashboard summaries for overdue, due-today and upcoming active leads, with tap-to-filter cards
 - Existing export utilities and WhatsApp click-to-open support
 
-**Data-source limitations:** The current discovery implementation uses OpenStreetMap listings. It does not provide Google ratings, review counts, customer review text, opening hours in the current result model, or verified business rankings. The result filter searches already-fetched listings; it is not a Google review/rating filter. Nominatim and Overpass are community services with usage policies and availability limits, so requests should be paced and a production deployment should assess service policies and a suitable hosted data provider. A successful CI build confirms compilation and APK packaging, not end-to-end network behavior on a physical phone.
+**Free data-source strategy and limitations:** Discovery uses public OpenStreetMap data through Nominatim, Overpass and Photon; no Google Places or Mappls paid API key is required. Overpass searches race several public mirrors with short timeouts and Photon forward search is used when Overpass is unavailable. The app filters results to the requested radius and caches geocoded locations in memory for the current app process. Lodging categories include common tourism tags, but coverage depends on what contributors have mapped; a hotel, hostel or guest house missing from OpenStreetMap cannot be discovered by this provider. Photon is a fallback rather than a guaranteed complete second index, and its public service also has availability and usage limits. The current implementation does not provide Google ratings, review counts, customer review text, opening hours in the result model, or verified business rankings. The result filter searches already-fetched listings; it is not a Google review/rating filter. Public community endpoints are best-effort services, not an SLA-backed production API. Requests must respect each service policy and be paced; repeated or overlapping searches can be rate-limited. A successful CI build confirms compilation and APK packaging, not end-to-end network behavior on a physical phone.
 
 ## Build log
 
@@ -155,8 +155,9 @@ Read [Build Log 01: Turning Local Business Discovery into an Android Lead Workfl
 - [x] Prevent duplicate discovered leads by business name and address
 - [x] Add OpenStreetMap attribution in the discovery interface
 - [ ] Verify search behavior and lead saving on a physical Android device
-- [ ] Improve error handling, request pacing and resilient data-source behavior
-- [ ] Add pagination or result limits for large searches
+- [x] Improve error handling and resilient data-source behavior with concurrent Overpass mirrors and Photon fallback
+- [ ] Add measured request pacing, bounded result pagination and cache controls
+- [ ] Add pagination or result limits for large searches and broader multi-area coverage
 - [x] Add lead pipeline statuses and status updates
 - [x] Add per-lead follow-up date management with database migration
 - [x] Add overdue, due-today and upcoming follow-up dashboard summaries with selectable filters
@@ -191,7 +192,7 @@ To install on an Android device, open the APK from the phone's file manager and 
 | `MainActivity.kt` | Navigation |
 | `LeadViewModel.kt` | Lead state, operations and duplicate checks |
 | `data/Lead.kt` | Lead model |
-| `data/OpenPlaceSearch.kt` | OpenStreetMap geocoding and nearby place search |
+| `data/OpenPlaceSearch.kt` | OpenStreetMap geocoding, Overpass mirror search, Photon fallback and nearby place filtering |
 | `ui/DiscoveryScreen.kt` | Category/location discovery, result filtering and sorting |
 | `data/LeadDao.kt` | Database queries |
 | `data/AppDatabase.kt` | Room database |
