@@ -1,0 +1,30 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#00000000" android:pathData="M0,0h108v108h-108z"/>
+    <!-- Glass L monogram -->
+    <path android:fillColor="#173D62" android:fillAlpha="0.92"
+        android:strokeColor="#62DFFF" android:strokeWidth="2.2"
+        android:pathData="M31,25 C26,25 23,29 23,35 V76 C23,83 27,87 34,87 H78 C84,87 87,83 87,77 C87,72 83,68 78,68 H43 V35 C43,29 39,25 34,25 Z"/>
+    <path android:fillColor="#8BEAFF" android:fillAlpha="0.22"
+        android:pathData="M29,31h8v39h-8zM37,73h43v7H37z"/>
+    <!-- Rising pipeline and nodes -->
+    <path android:fillColor="#00000000" android:strokeColor="#37FF83"
+        android:strokeWidth="4.5" android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M27,72 C39,70 46,68 55,64 S72,55 83,43"/>
+    <path android:fillColor="#DFFFF4" android:strokeColor="#35FF7B"
+        android:strokeWidth="2.4" android:pathData="M40,66a4.5,4.5 0,1 0,9 0a4.5,4.5 0,1 0,-9 0"/>
+    <path android:fillColor="#DFFFF4" android:strokeColor="#35FF7B"
+        android:strokeWidth="2.4" android:pathData="M56,61a4.5,4.5 0,1 0,9 0a4.5,4.5 0,1 0,-9 0"/>
+    <path android:fillColor="#DFFFF4" android:strokeColor="#35FF7B"
+        android:strokeWidth="2.4" android:pathData="M71,52a4.5,4.5 0,1 0,9 0a4.5,4.5 0,1 0,-9 0"/>
+    <path android:fillColor="#7DFF79" android:pathData="M76,35l15,-5 -5,15 -2,-7 -7,-3z"/>
+    <!-- Location pin only: deliberately empty centre -->
+    <path android:fillColor="#00D78A" android:strokeColor="#B8FFF0"
+        android:strokeWidth="1.8"
+        android:pathData="M55,12 C45,12 38,20 38,30 C38,42 55,55 55,55 S72,42 72,30 C72,20 65,12 55,12 Z"/>
+    <path android:fillColor="#092A38" android:strokeColor="#75FFE2"
+        android:strokeWidth="1.5"
+        android:pathData="M55,20a10,10 0,1 0,0.1 0z"/>
+</vector>
