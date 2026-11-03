@@ -138,14 +138,20 @@ object Exporter {
         leads.forEach { lead ->
             val cells = row(lead).mapIndexed { index, value -> wrap(body, value, colW[index] - 8f) }
             val lineCount = cells.maxOf { it.size }
-            val rowHeight = lineCount * 12f + 8f
-            if (y + rowHeight > pageH - 30f) newPage()
-            cells.forEachIndexed { column, lines ->
-                lines.forEachIndexed { lineIndex, line ->
-                    canvas!!.drawText(line, colX[column], y + lineIndex * 12f, body)
+            var offset = 0
+            while (offset < lineCount) {
+                if (y > pageH - 55f) newPage()
+                val availableLines = ((pageH - 30f - y - 8f) / 12f).toInt().coerceAtLeast(1)
+                val chunkLines = minOf(availableLines, lineCount - offset)
+                cells.forEachIndexed { column, lines ->
+                    for (lineIndex in offset until minOf(offset + chunkLines, lines.size)) {
+                        canvas!!.drawText(lines[lineIndex], colX[column], y + (lineIndex - offset) * 12f, body)
+                    }
                 }
+                y += chunkLines * 12f + 8f
+                offset += chunkLines
+                if (offset < lineCount) newPage()
             }
-            y += rowHeight
         }
         page?.let { doc.finishPage(it) }
 
