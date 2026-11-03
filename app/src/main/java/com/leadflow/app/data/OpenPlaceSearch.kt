@@ -14,7 +14,8 @@ data class PlaceResult(
     val phone: String,
     val website: String,
     val latitude: Double,
-    val longitude: Double
+    val longitude: Double,
+    val distanceMeters: Int = -1
 ) {
     val mapUrl: String
         get() = "https://www.google.com/maps/search/?api=1&query=$latitude,$longitude"
@@ -23,19 +24,32 @@ data class PlaceResult(
 object OpenPlaceSearch {
     private const val USER_AGENT = "LeadFlowAndroid/1.0"
 
+    /** Hard cap so a wide radius cannot flood the public Overpass servers or the phone. */
+    const val MAX_RESULTS = 300
+
     fun search(category: String, location: String, radiusMeters: Int = 5000): List<PlaceResult> {
         val (lat, lon) = geocode(location)
-        val filters = categoryFilters(category)
-        val clauses = filters.joinToString("\n") { filter ->
-            """
-            node(around:$radiusMeters,$lat,$lon)$filter;
-            way(around:$radiusMeters,$lat,$lon)$filter;
-            relation(around:$radiusMeters,$lat,$lon)$filter;
-            """.trimIndent()
+        val query = buildQuery(category, lat, lon, radiusMeters)
+        return parseResults(requestOverpass(query), category, location, lat, lon)
+    }
+
+    internal fun buildQuery(category: String, lat: Double, lon: Double, radiusMeters: Int): String {
+        val clauses = categoryFilters(category).joinToString("\n") { filter ->
+            "node(around:$radiusMeters,$lat,$lon)$filter;\n" +
+                "way(around:$radiusMeters,$lat,$lon)$filter;\n" +
+                "relation(around:$radiusMeters,$lat,$lon)$filter;"
         }
-        val query = "[out:json][timeout:25];\n(\n$clauses\n);\nout center tags;"
-        val json = JSONObject(requestOverpass(query))
-        val elements = json.optJSONArray("elements") ?: return emptyList()
+        return "[out:json][timeout:25];\n(\n$clauses\n);\nout center tags $MAX_RESULTS;"
+    }
+
+    internal fun parseResults(
+        response: String,
+        category: String,
+        location: String,
+        originLat: Double,
+        originLon: Double
+    ): List<PlaceResult> {
+        val elements = JSONObject(response).optJSONArray("elements") ?: return emptyList()
         val results = ArrayList<PlaceResult>()
         val seen = HashSet<String>()
         for (i in 0 until elements.length()) {
@@ -53,7 +67,9 @@ object OpenPlaceSearch {
             if (!latitude.isFinite() || !longitude.isFinite()) continue
             if (!seen.add("$name|$address".lowercase())) continue
             val type = tags.optString("amenity").ifBlank {
-                tags.optString("tourism").ifBlank { tags.optString("shop").ifBlank { category } }
+                tags.optString("tourism").ifBlank {
+                    tags.optString("shop").ifBlank { tags.optString("office").ifBlank { category } }
+                }
             }
             results.add(
                 PlaceResult(
@@ -63,11 +79,23 @@ object OpenPlaceSearch {
                     phone = tags.optString("phone").ifBlank { tags.optString("contact:phone") },
                     website = tags.optString("website").ifBlank { tags.optString("contact:website") },
                     latitude = latitude,
-                    longitude = longitude
+                    longitude = longitude,
+                    distanceMeters = distanceMeters(originLat, originLon, latitude, longitude)
                 )
             )
         }
         return results.sortedBy { it.name.lowercase() }
+    }
+
+    /** Haversine distance in whole metres. */
+    internal fun distanceMeters(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Int {
+        val r = 6_371_000.0
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2)
+        return (2 * r * Math.asin(Math.sqrt(a))).toInt()
     }
 
 
@@ -149,7 +177,10 @@ object OpenPlaceSearch {
         }
     }
 
-    private fun categoryFilters(category: String): List<String> {
+    internal fun escapeOverpassRegex(text: String): String =
+        text.filter { it.isLetterOrDigit() || it == ' ' || it == '-' }.replace(Regex("\\s+"), " ").trim()
+
+    internal fun categoryFilters(category: String): List<String> {
         val value = category.trim().lowercase()
         return when {
             "hotel" in value || "lodging" in value -> listOf("""["tourism"="hotel"]""", """["tourism"="guest_house"]""")
@@ -161,15 +192,22 @@ object OpenPlaceSearch {
             "supermarket" in value || "grocery" in value -> listOf("""["shop"="supermarket"]""")
             "salon" in value -> listOf("""["shop"="hairdresser"]""")
             "hospital" in value -> listOf("""["amenity"="hospital"]""")
-            else -> listOf("""["name"~".",i]""")
+            else -> {
+                val text = escapeOverpassRegex(value)
+                if (text.isBlank()) emptyList()
+                else listOf("name", "shop", "amenity", "office", "craft").map { key -> """["$key"~"$text",i]""" }
+            }
         }
     }
 
     private fun geocode(location: String): Pair<Double, Double> {
         val encoded = URLEncoder.encode(location, Charsets.UTF_8.name())
         val results = JSONArray(requestText("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded"))
-        if (results.length() == 0) throw IllegalStateException("No matching location found. Try a city or town name.")
-        val first = results.getJSONObject(0)
+        val first = results.optJSONObject(0)
+            ?: throw IllegalStateException("No matching location found. Try a city or town name.")
+        if (!first.has("lat") || !first.has("lon")) {
+            throw IllegalStateException("Location lookup returned incomplete coordinates. Please try another location.")
+        }
         return first.getDouble("lat") to first.getDouble("lon")
     }
 
@@ -184,7 +222,7 @@ object OpenPlaceSearch {
         try {
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val body = stream.bufferedReader(Charsets.UTF_8).use { it.readText() }
+            val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
             if (status !in 200..299) throw IllegalStateException("Place search service returned HTTP $status. Please try again later.")
             return body
         } finally {

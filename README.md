@@ -117,7 +117,9 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Search places by category, typed location and configurable radius (500–25,000 metres)
 - Initial category coverage for restaurants, hotels/guest houses, cafés, bakeries, bars, pharmacies, supermarkets, salons and hospitals
 - Filter fetched results by name, address or category
-- Sort results by name or category
+- Sort results by name, category or distance from the search centre
+- Show each result's distance from the search centre
+- Normalize discovered Indian phone numbers to valid 10-digit mobile numbers before saving; retain listed landlines in lead notes
 - View available address, phone number and website details
 - Open a discovered place in Google Maps
 - Save a discovered place into the local lead database
@@ -155,8 +157,12 @@ Read [Build Log 01: Turning Local Business Discovery into an Android Lead Workfl
 - [x] Prevent duplicate discovered leads by business name and address
 - [x] Add OpenStreetMap attribution in the discovery interface
 - [ ] Verify search behavior and lead saving on a physical Android device
-- [ ] Improve error handling, request pacing and resilient data-source behavior
-- [ ] Add pagination or result limits for large searches
+- [x] Cap discovery results at 300 and prevent unknown categories from matching every named place
+- [x] Normalize discovered phone numbers to 10-digit mobiles so WhatsApp links work; keep landlines in notes
+- [x] Show distance from the search centre and sort by distance
+- [x] Add unit tests for phone normalization and place parsing
+- [ ] Improve request pacing and resilient data-source behavior
+- [ ] Add pagination for large searches (a hard 300-result cap is in place)
 - [x] Add lead pipeline statuses and status updates
 - [x] Add per-lead follow-up date management with database migration
 - [x] Add overdue, due-today and upcoming follow-up dashboard summaries with selectable filters
