@@ -37,7 +37,7 @@ object OpenPlaceSearch {
         }
         val query = "[out:json][timeout:25];\n(\n$clauses\n);\nout center tags;"
         val json = JSONObject(requestOverpass(query))
-        val elements = json.optJSONArray("elements") ?: return emptyList()
+        val elements = json.getJSONArray("elements")
         val results = ArrayList<PlaceResult>()
         val seen = HashSet<String>()
         for (i in 0 until elements.length()) {
@@ -83,7 +83,12 @@ object OpenPlaceSearch {
         for (endpoint in endpoints) {
             repeat(2) { attempt ->
                 try {
-                    return postOverpass(endpoint, query)
+                    val response = postOverpass(endpoint, query)
+                    val payload = JSONObject(response)
+                    if (payload.optJSONArray("elements") == null) {
+                        throw IOException("Overpass returned an invalid response: missing elements array.")
+                    }
+                    return response
                 } catch (e: Exception) {
                     val status = (e as? OverpassHttpException)?.statusCode
                     if (status != null && status != 408 && status != 429 && status !in 500..599) {
