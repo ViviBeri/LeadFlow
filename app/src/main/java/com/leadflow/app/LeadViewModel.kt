@@ -54,8 +54,19 @@ class LeadViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    fun updateLeadContactDetails(lead: Lead, name: String, address: String, phone: String, email: String, website: String) {
-        viewModelScope.launch { dao.updateContactDetails(lead.id, name, address, phone, email, website) }
+    fun updateLeadContactDetails(
+        lead: Lead,
+        name: String,
+        address: String,
+        phone: String,
+        email: String,
+        website: String,
+        onResult: (Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            val updated = dao.updateContactDetailsIfUnique(lead.id, name, address, phone, email, website)
+            onResult(updated)
+        }
     }
 
     fun updateLeadStatus(lead: Lead, status: String) {
