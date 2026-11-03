@@ -72,34 +72,58 @@ object OpenPlaceSearch {
 
 
     private fun requestOverpass(query: String): String {
-        // Public Overpass instances are independent best-effort services.
-        // Try distinct global mirrors once each before reporting a useful diagnostic.
+        // Public instances are best-effort. Try POST, then GET on each global mirror.
         val endpoints = listOf(
-            "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
-            "https://lz4.overpass-api.de/api/interpreter",
-            "https://z.overpass-api.de/api/interpreter",
             "https://overpass-api.de/api/interpreter",
-            "https://overpass.private.coffee/api/interpreter"
+            "https://overpass.private.coffee/api/interpreter",
+            "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
         )
         val failures = mutableListOf<String>()
         for (endpoint in endpoints) {
             val host = endpoint.substringAfter("https://").substringBefore("/")
-            try {
-                val response = postOverpass(endpoint, query)
-                // Validate the payload before accepting an endpoint. Some proxies return
-                // HTML error pages with HTTP 200, which must not block the next mirror.
-                JSONObject(response)
-                return response
-            } catch (e: Exception) {
-                val detail = e.message?.replace(Regex("\\s+"), " ")?.take(110)
-                    ?: e.javaClass.simpleName
-                failures += "$host: $detail"
+            for (method in listOf("POST", "GET")) {
+                try {
+                    val response = if (method == "POST") {
+                        postOverpass(endpoint, query)
+                    } else {
+                        getOverpass(endpoint, query)
+                    }
+                    val payload = JSONObject(response)
+                    if (!payload.has("elements")) {
+                        throw IOException("Invalid Overpass JSON response")
+                    }
+                    return response
+                } catch (e: Exception) {
+                    val detail = e.message?.replace(Regex("\\s+"), " ")?.take(100)
+                        ?: e.javaClass.simpleName
+                    failures += "$host $method: $detail"
+                }
             }
         }
         throw IOException(
-            "OpenStreetMap search failed on all public Overpass servers. " +
+            "OpenStreetMap search failed. Tried POST and GET on multiple Overpass servers. " +
                 failures.joinToString(" | ")
         )
+    }
+
+    private fun getOverpass(endpoint: String, query: String): String {
+        val encoded = URLEncoder.encode(query, Charsets.UTF_8.name())
+        val connection = (URL("$endpoint?data=$encoded").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 12000
+            readTimeout = 35000
+            setRequestProperty("User-Agent", USER_AGENT)
+            setRequestProperty("Accept", "application/json")
+        }
+        try {
+            val status = connection.responseCode
+            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+            if (status !in 200..299) throw IOException("HTTP $status")
+            return response
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun postOverpass(endpoint: String, query: String): String {
@@ -118,9 +142,11 @@ object OpenPlaceSearch {
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
             val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-            if (status !in 200..299) throw IOException("HTTP " + status)
+            if (status !in 200..299) throw IOException("HTTP $status")
             return response
-        } finally { connection.disconnect() }
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun categoryFilters(category: String): List<String> {
