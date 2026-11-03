@@ -26,6 +26,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
+import kotlin.math.roundToInt
 import androidx.compose.ui.unit.dp
 import com.leadflow.app.data.OpenPlaceSearch
 import com.leadflow.app.data.PlaceResult
@@ -37,7 +40,7 @@ import kotlinx.coroutines.withContext
 fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
     var category by remember { mutableStateOf("Restaurant") }
     var location by remember { mutableStateOf("") }
-    var radius by remember { mutableStateOf("5000") }
+    var radius by remember { mutableStateOf("5") }
     var results by remember { mutableStateOf<List<PlaceResult>>(emptyList()) }
     var loading by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
@@ -71,9 +74,13 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
             )
             OutlinedTextField(
                 value = radius,
-                onValueChange = { radius = it.filter(Char::isDigit).take(5) },
+                onValueChange = { value ->
+                    val cleaned = value.filter { it.isDigit() || it == '.' }
+                    radius = if (cleaned.count { it == '.' } <= 1) cleaned.take(5) else radius
+                },
                 modifier = Modifier.fillMaxWidth(),
-                label = { Text("Search radius in metres (500–25000)") },
+                label = { Text("Search radius in kilometres (0.5–25)") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 singleLine = true
             )
             Button(
@@ -84,7 +91,7 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                     results = emptyList()
                     val selectedCategory = category.trim()
                     val selectedLocation = location.trim()
-                    val selectedRadius = radius.toIntOrNull()?.coerceIn(500, 25000) ?: 5000
+                    val selectedRadius = ((radius.toDoubleOrNull() ?: 5.0).coerceIn(0.5, 25.0) * 1000.0).roundToInt()
                     scope.launch {
                         try {
                             results = withContext(Dispatchers.IO) {
