@@ -5,6 +5,7 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
+import java.io.IOException
 
 data class PlaceResult(
     val name: String,
@@ -33,8 +34,7 @@ object OpenPlaceSearch {
             """.trimIndent()
         }
         val query = "[out:json][timeout:25];\n(\n$clauses\n);\nout center tags;"
-        val encoded = URLEncoder.encode(query, Charsets.UTF_8.name())
-        val json = JSONObject(requestText("https://overpass-api.de/api/interpreter?data=$encoded"))
+        val json = JSONObject(requestOverpass(query))
         val elements = json.optJSONArray("elements") ?: return emptyList()
         val results = ArrayList<PlaceResult>()
         val seen = HashSet<String>()
@@ -68,6 +68,49 @@ object OpenPlaceSearch {
             )
         }
         return results.sortedBy { it.name.lowercase() }
+    }
+
+
+    private fun requestOverpass(query: String): String {
+        val endpoints = listOf(
+            "https://overpass.private.coffee/api/interpreter",
+            "https://overpass-api.de/api/interpreter",
+            "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+        )
+        val failures = mutableListOf<String>()
+        for (endpoint in endpoints) {
+            repeat(2) { attempt ->
+                try {
+                    return postOverpass(endpoint, query)
+                } catch (e: Exception) {
+                    val detail = e.message?.take(140) ?: e.javaClass.simpleName
+                    failures += endpoint.substringAfter("https://").substringBefore("/") + ": " + detail
+                    if (attempt == 0) Thread.sleep(700)
+                }
+            }
+        }
+        throw IOException("OpenStreetMap search is temporarily unavailable. Tried multiple servers. " + failures.distinct().take(3).joinToString(" | "))
+    }
+
+    private fun postOverpass(endpoint: String, query: String): String {
+        val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 12000
+            readTimeout = 35000
+            doOutput = true
+            setRequestProperty("User-Agent", USER_AGENT)
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
+        }
+        try {
+            val body = "data=" + URLEncoder.encode(query, Charsets.UTF_8.name())
+            connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            val status = connection.responseCode
+            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
+            if (status !in 200..299) throw IOException("HTTP " + status)
+            return response
+        } finally { connection.disconnect() }
     }
 
     private fun categoryFilters(category: String): List<String> {
