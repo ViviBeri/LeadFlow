@@ -29,26 +29,38 @@ object FileStore {
             val collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI
             val relPath = Environment.DIRECTORY_DOWNLOADS + "/LeadFlow"
 
-            // Remove an older copy so we don't end up with "leads (1).csv".
+            // Keep existing exports until the replacement is completely written.
+            val previousIds = mutableListOf<Long>()
             resolver.query(
                 collection,
                 arrayOf(MediaStore.Downloads._ID),
                 "${MediaStore.Downloads.DISPLAY_NAME}=? AND ${MediaStore.Downloads.RELATIVE_PATH}=?",
                 arrayOf(fileName, "$relPath/"),
                 null
-            )?.use { c ->
-                while (c.moveToNext()) {
-                    resolver.delete(ContentUris.withAppendedId(collection, c.getLong(0)), null, null)
-                }
+            )?.use { cursor ->
+                while (cursor.moveToNext()) previousIds.add(cursor.getLong(0))
             }
 
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
                 put(MediaStore.Downloads.MIME_TYPE, mime)
                 put(MediaStore.Downloads.RELATIVE_PATH, relPath)
+                put(MediaStore.Downloads.IS_PENDING, 1)
             }
             val uri = resolver.insert(collection, values) ?: return false
-            resolver.openOutputStream(uri)?.use { it.write(bytes) } ?: return false
+            val written = runCatching {
+                val output = resolver.openOutputStream(uri) ?: error("Unable to open export output")
+                output.use { it.write(bytes) }
+                val publish = ContentValues().apply { put(MediaStore.Downloads.IS_PENDING, 0) }
+                check(resolver.update(uri, publish, null, null) == 1) { "Unable to publish export" }
+            }.isSuccess
+            if (!written) {
+                resolver.delete(uri, null, null)
+                return false
+            }
+            previousIds.forEach { id ->
+                resolver.delete(ContentUris.withAppendedId(collection, id), null, null)
+            }
             return true
         } else {
             // Android 7-9: classic file access (needs WRITE_EXTERNAL_STORAGE granted).
