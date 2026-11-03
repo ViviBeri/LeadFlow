@@ -141,6 +141,10 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 
 **Data-source limitations:** The current discovery implementation uses OpenStreetMap listings. It does not provide Google ratings, review counts, customer review text, opening hours in the current result model, or verified business rankings. The result filter searches already-fetched listings; it is not a Google review/rating filter. Nominatim and Overpass are community services with usage policies and availability limits, so requests should be paced and a production deployment should assess service policies and a suitable hosted data provider. A successful CI build confirms compilation and APK packaging, not end-to-end network behavior on a physical phone.
 
+## Build log
+
+Read [Build Log 01: Turning Local Business Discovery into an Android Lead Workflow](docs/BUILD_LOG_01_LOCAL_BUSINESS_DISCOVERY.md) for the engineering decisions, current data-source boundaries, implementation workflow, and next verification steps.
+
 ## Development roadmap
 
 - [x] Build the initial category-and-location place discovery screen
