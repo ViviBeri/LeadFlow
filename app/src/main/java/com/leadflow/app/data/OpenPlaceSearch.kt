@@ -129,12 +129,39 @@ object OpenPlaceSearch {
         }
     }
 
+    private const val NOMINATIM_MIN_INTERVAL_MS = 1100L
+    private const val GEOCODE_CACHE_TTL_MS = 24 * 60 * 60 * 1000L
+    private const val GEOCODE_CACHE_MAX_ENTRIES = 100
+    private val geocodeLock = Any()
+    private var lastGeocodeRequestAt = 0L
+    private val geocodeCache = LinkedHashMap<String, Pair<Long, Pair<Double, Double>>>(16, 0.75f, true)
+
     private fun geocode(location: String): Pair<Double, Double> {
-        val encoded = URLEncoder.encode(location, Charsets.UTF_8.name())
-        val results = JSONArray(requestText("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded"))
-        if (results.length() == 0) throw IllegalStateException("No matching location found. Try a city or town name.")
-        val first = results.getJSONObject(0)
-        return first.getDouble("lat") to first.getDouble("lon")
+        val cacheKey = location.trim().replace(Regex("\\s+"), " ").lowercase()
+        synchronized(geocodeLock) {
+            val now = System.currentTimeMillis()
+            val cached = geocodeCache[cacheKey]
+            if (cached != null && now - cached.first < GEOCODE_CACHE_TTL_MS) {
+                return cached.second
+            }
+            if (cached != null) geocodeCache.remove(cacheKey)
+
+            val waitMs = NOMINATIM_MIN_INTERVAL_MS - (now - lastGeocodeRequestAt)
+            if (waitMs > 0) Thread.sleep(waitMs)
+            lastGeocodeRequestAt = System.currentTimeMillis()
+
+            val encoded = URLEncoder.encode(location.trim(), Charsets.UTF_8.name())
+            val results = JSONArray(requestText("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded"))
+            if (results.length() == 0) throw IllegalStateException("No matching location found. Try a city or town name.")
+            val first = results.getJSONObject(0)
+            val coordinates = first.getDouble("lat") to first.getDouble("lon")
+            geocodeCache[cacheKey] = System.currentTimeMillis() to coordinates
+            while (geocodeCache.size > GEOCODE_CACHE_MAX_ENTRIES) {
+                val eldestKey = geocodeCache.keys.iterator().next()
+                geocodeCache.remove(eldestKey)
+            }
+            return coordinates
+        }
     }
 
     private fun requestText(address: String): String {
