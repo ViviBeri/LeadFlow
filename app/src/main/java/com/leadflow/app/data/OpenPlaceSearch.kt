@@ -97,7 +97,7 @@ object OpenPlaceSearch {
                     for (method in listOf("POST", "GET")) {
                         try {
                             val response = if (method == "POST") {
-                                postOverpass(endpoint, query)
+                                postOverpass(endpoint, query, 9000)
                             } else {
                                 getOverpass(endpoint, query)
                             }
