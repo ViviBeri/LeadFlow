@@ -163,8 +163,11 @@ object Exporter {
         page?.let { doc.finishPage(it) }
 
         val out = ByteArrayOutputStream()
-        doc.writeTo(out)
-        doc.close()
-        return out.toByteArray()
+        try {
+            doc.writeTo(out)
+            return out.toByteArray()
+        } finally {
+            doc.close()
+        }
     }
 }
