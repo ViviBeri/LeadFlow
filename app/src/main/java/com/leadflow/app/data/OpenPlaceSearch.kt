@@ -6,6 +6,13 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.io.IOException
+import java.util.concurrent.Callable
+import java.util.concurrent.CompletionService
+import java.util.concurrent.ExecutionException
+import java.util.concurrent.ExecutorCompletionService
+import java.util.concurrent.Executors
+import java.util.concurrent.Future
+import java.util.concurrent.TimeUnit
 
 data class PlaceResult(
     val name: String,
@@ -72,37 +79,63 @@ object OpenPlaceSearch {
 
 
     private fun requestOverpass(query: String): String {
-        // Fail fast: do not wait through POST and GET on every public mirror.
-        // The complete Overpass fallback sequence has a strict 20-second budget.
         val endpoints = listOf(
             "https://overpass-api.de/api/interpreter",
             "https://lz4.overpass-api.de/api/interpreter",
-            "https://overpass.private.coffee/api/interpreter"
+            "https://overpass.private.coffee/api/interpreter",
+            "https://overpass.kumi.systems/api/interpreter",
+            "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
         )
-        val deadline = System.nanoTime() + 20_000_000_000L
-        var attempts = 0
-        val failures = mutableListOf<String>()
+        val failures = java.util.concurrent.atomic.AtomicInteger(0)
+        val executor = Executors.newFixedThreadPool(endpoints.size)
+        val completion: CompletionService<String?> = ExecutorCompletionService(executor)
+        val futures = mutableListOf<Future<String?>>()
 
-        for (endpoint in endpoints) {
-            val remainingMs = ((deadline - System.nanoTime()) / 1_000_000L).toInt()
-            if (remainingMs <= 0) break
-            attempts++
-            val host = endpoint.substringAfter("https://").substringBefore("/")
-            try {
-                val response = postOverpass(endpoint, query, remainingMs.coerceAtMost(9000))
-                val payload = JSONObject(response)
-                if (!payload.has("elements")) throw IOException("Invalid Overpass JSON response")
-                return response
-            } catch (e: Exception) {
-                val detail = e.message?.replace(Regex("\\s+"), " ")?.take(80)
-                    ?: e.javaClass.simpleName
-                failures += "$host: $detail"
+        try {
+            endpoints.forEach { endpoint ->
+                futures += completion.submit(Callable {
+                    for (method in listOf("POST", "GET")) {
+                        try {
+                            val response = if (method == "POST") {
+                                postOverpass(endpoint, query)
+                            } else {
+                                getOverpass(endpoint, query)
+                            }
+                            val payload = JSONObject(response)
+                            if (!payload.has("elements")) {
+                                throw IOException("Invalid Overpass JSON response")
+                            }
+                            return@Callable response
+                        } catch (_: Exception) {
+                            failures.incrementAndGet()
+                        }
+                    }
+                    null
+                })
             }
+
+            // Race independent mirrors. A healthy server wins without waiting for
+            // slower or unreachable mirrors; the whole lookup is bounded to 20 seconds.
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20)
+            repeat(endpoints.size) {
+                val remaining = deadline - System.nanoTime()
+                if (remaining <= 0L) return@repeat
+                val completed = completion.poll(remaining, TimeUnit.NANOSECONDS) ?: return@repeat
+                val response = try {
+                    completed.get()
+                } catch (_: ExecutionException) {
+                    null
+                }
+                if (response != null) return response
+            }
+        } finally {
+            futures.forEach { it.cancel(true) }
+            executor.shutdownNow()
         }
 
         throw IOException(
-            "Place search timed out or the OpenStreetMap servers are busy. " +
-                "Tried $attempts servers (20-second limit). Please retry, or try again later."
+            "OpenStreetMap search servers did not respond within 20 seconds or returned errors. " +
+                "Check your connection and try again. (" + failures.get() + " failed requests)"
         )
     }
 
@@ -110,8 +143,8 @@ object OpenPlaceSearch {
         val encoded = URLEncoder.encode(query, Charsets.UTF_8.name())
         val connection = (URL("$endpoint?data=$encoded").openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
-            connectTimeout = 12000
-            readTimeout = 35000
+            connectTimeout = 5000
+            readTimeout = 12000
             setRequestProperty("User-Agent", USER_AGENT)
             setRequestProperty("Accept", "application/json")
         }
@@ -177,7 +210,7 @@ object OpenPlaceSearch {
         val connection = (URL(address).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 12000
-            readTimeout = 30000
+            readTimeout = 10000
             setRequestProperty("User-Agent", USER_AGENT)
             setRequestProperty("Accept", "application/json")
         }
