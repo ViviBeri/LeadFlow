@@ -13,6 +13,7 @@ import java.util.concurrent.ExecutorCompletionService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.ConcurrentHashMap
 
 data class PlaceResult(
     val name: String,
@@ -29,6 +30,7 @@ data class PlaceResult(
 
 object OpenPlaceSearch {
     private const val USER_AGENT = "LeadFlowAndroid/1.0"
+    private val geocodeCache = ConcurrentHashMap<String, Pair<Double, Double>>()
 
     fun search(category: String, location: String, radiusMeters: Int = 5000): List<PlaceResult> {
         val (lat, lon) = geocode(location)
@@ -104,7 +106,7 @@ object OpenPlaceSearch {
                     for (method in listOf("POST", "GET")) {
                         try {
                             val response = if (method == "POST") {
-                                postOverpass(endpoint, query, 9000)
+                                postOverpass(endpoint, query, 6000)
                             } else {
                                 getOverpass(endpoint, query)
                             }
@@ -123,7 +125,7 @@ object OpenPlaceSearch {
 
             // Race independent mirrors. A healthy server wins without waiting for
             // slower or unreachable mirrors; the whole lookup is bounded to 20 seconds.
-            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(20)
+            val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(8)
             repeat(endpoints.size) {
                 val remaining = deadline - System.nanoTime()
                 if (remaining <= 0L) return@repeat
@@ -141,7 +143,7 @@ object OpenPlaceSearch {
         }
 
         throw IOException(
-            "OpenStreetMap search servers did not respond within 20 seconds or returned errors. " +
+            "OpenStreetMap search servers did not respond within 8 seconds or returned errors. " +
                 "Check your connection and try again. (" + failures.get() + " failed requests)"
         )
     }
@@ -150,8 +152,8 @@ object OpenPlaceSearch {
         val encoded = URLEncoder.encode(query, Charsets.UTF_8.name())
         val connection = (URL("$endpoint?data=$encoded").openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
-            connectTimeout = 5000
-            readTimeout = 12000
+            connectTimeout = 3500
+            readTimeout = 6000
             setRequestProperty("User-Agent", USER_AGENT)
             setRequestProperty("Accept", "application/json")
         }
@@ -169,8 +171,8 @@ object OpenPlaceSearch {
     private fun postOverpass(endpoint: String, query: String, timeoutMs: Int): String {
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
-            connectTimeout = timeoutMs.coerceAtMost(5000)
-            readTimeout = timeoutMs.coerceAtMost(9000)
+            connectTimeout = timeoutMs.coerceAtMost(3500)
+            readTimeout = timeoutMs.coerceAtMost(6000)
             doOutput = true
             setRequestProperty("User-Agent", USER_AGENT)
             setRequestProperty("Accept", "application/json")
@@ -208,14 +210,17 @@ object OpenPlaceSearch {
             category.contains("hospital", true) -> "amenity:hospital"
             else -> null
         }
+        // Forward search discovers businesses; reverse geocoding mostly returns nearby address features.
+        val queryText = category.trim().ifBlank { "business" }
         val params = buildString {
-            append("lon=").append(longitude)
+            append("q=").append(URLEncoder.encode(queryText, Charsets.UTF_8.name()))
             append("&lat=").append(latitude)
-            append("&radius=").append((radiusMeters / 1000.0).coerceAtLeast(0.5))
-            append("&limit=50")
+            append("&lon=").append(longitude)
+            append("&limit=100")
+            append("&lang=en")
             if (osmTag != null) append("&osm_tag=").append(URLEncoder.encode(osmTag, Charsets.UTF_8.name()))
         }
-        val response = requestText("https://photon.komoot.io/reverse?$params")
+        val response = requestText("https://photon.komoot.io/api/?$params")
         val features = JSONObject(response).optJSONArray("features") ?: return emptyList()
         val results = ArrayList<PlaceResult>()
         val seen = HashSet<String>()
@@ -283,11 +288,15 @@ object OpenPlaceSearch {
     }
 
     private fun geocode(location: String): Pair<Double, Double> {
+        val cacheKey = location.trim().lowercase()
+        geocodeCache[cacheKey]?.let { return it }
         val encoded = URLEncoder.encode(location, Charsets.UTF_8.name())
         val results = JSONArray(requestText("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded"))
         if (results.length() == 0) throw IllegalStateException("No matching location found. Try a city or town name.")
         val first = results.getJSONObject(0)
-        return first.getDouble("lat") to first.getDouble("lon")
+        val coordinates = first.getDouble("lat") to first.getDouble("lon")
+        geocodeCache[cacheKey] = coordinates
+        return coordinates
     }
 
     private fun requestText(address: String): String {
