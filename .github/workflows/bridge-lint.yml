@@ -1,0 +1,29 @@
+name: Bridge syntax check
+
+on:
+  push:
+    branches:
+      - 'chore/**'
+      - 'codex/**'
+    paths:
+      - 'bridge/**'
+      - '.github/workflows/bridge-lint.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'bridge/**'
+      - '.github/workflows/bridge-lint.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  python-syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile bridge script
+        run: python -m py_compile bridge/chatgpt_codex_bridge.py
