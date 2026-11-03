@@ -20,24 +20,13 @@ object FileStore {
         if (!dir.exists() && !dir.mkdirs()) throw IllegalStateException("Unable to create export directory")
         val shareFile = File(dir, fileName)
         val temporary = File(dir, ".$fileName.tmp")
-        val backup = File(dir, ".$fileName.bak")
         try {
             temporary.writeBytes(bytes)
-            if (backup.exists() && !backup.delete()) {
-                throw IllegalStateException("Unable to clear previous export backup")
-            }
-            val hadPrevious = shareFile.exists()
-            if (hadPrevious && !shareFile.renameTo(backup)) {
-                throw IllegalStateException("Unable to preserve previous share export")
-            }
             if (!temporary.renameTo(shareFile)) {
-                if (hadPrevious) backup.renameTo(shareFile)
                 throw IllegalStateException("Unable to publish share export")
             }
-            if (backup.exists()) backup.delete()
         } catch (error: Exception) {
             temporary.delete()
-            if (!shareFile.exists() && backup.exists()) backup.renameTo(shareFile)
             throw error
         }
 
@@ -114,21 +103,12 @@ object FileStore {
 
         val target = File(directory, fileName)
         val temporary = File(directory, ".$fileName.tmp")
-        val backup = File(directory, ".$fileName.bak")
         return try {
             temporary.writeBytes(bytes)
-            if (backup.exists() && !backup.delete()) error("Unable to clear export backup")
-            val hadPrevious = target.exists()
-            if (hadPrevious && !target.renameTo(backup)) error("Unable to preserve previous Downloads export")
-            if (!temporary.renameTo(target)) {
-                if (hadPrevious) backup.renameTo(target)
-                error("Unable to publish Downloads export")
-            }
-            if (backup.exists()) backup.delete()
+            if (!temporary.renameTo(target)) error("Unable to publish Downloads export")
             true
         } catch (error: Exception) {
             temporary.delete()
-            if (!target.exists() && backup.exists()) backup.renameTo(target)
             false
         }
     }
