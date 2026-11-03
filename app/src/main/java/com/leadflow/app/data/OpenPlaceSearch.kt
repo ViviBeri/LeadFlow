@@ -6,6 +6,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.io.IOException
+import java.io.ByteArrayOutputStream
 
 data class PlaceResult(
     val name: String,
@@ -22,6 +23,7 @@ data class PlaceResult(
 
 object OpenPlaceSearch {
     private const val USER_AGENT = "LeadFlowAndroid/1.0"
+    private const val MAX_OVERPASS_RESPONSE_BYTES = 8 * 1024 * 1024
 
     fun search(category: String, location: String, radiusMeters: Int = 5000): List<PlaceResult> {
         val (lat, lon) = geocode(location)
@@ -92,6 +94,22 @@ object OpenPlaceSearch {
         throw IOException("OpenStreetMap search is temporarily unavailable. Tried multiple servers. " + failures.distinct().take(3).joinToString(" | "))
     }
 
+    private fun readBoundedResponse(input: java.io.InputStream, maxBytes: Int): String {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8192)
+        var total = 0
+        while (true) {
+            val count = input.read(buffer)
+            if (count < 0) break
+            total += count
+            if (total > maxBytes) {
+                throw IOException("Search response was too large. Reduce the search radius and try again.")
+            }
+            output.write(buffer, 0, count)
+        }
+        return output.toString(Charsets.UTF_8.name())
+    }
+
     private fun postOverpass(endpoint: String, query: String): String {
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
@@ -107,9 +125,11 @@ object OpenPlaceSearch {
             connection.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
-            val response = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-            if (status !in 200..299) throw IOException("HTTP " + status)
-            return response
+            if (status !in 200..299) {
+                stream?.close()
+                throw IOException("HTTP " + status)
+            }
+            return stream?.use { readBoundedResponse(it, MAX_OVERPASS_RESPONSE_BYTES) }.orEmpty()
         } finally { connection.disconnect() }
     }
 
