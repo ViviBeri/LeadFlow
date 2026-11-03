@@ -74,16 +74,24 @@ object OpenPlaceSearch {
 
 
     private fun requestOverpass(query: String): String {
+        // Public instances are best-effort. Try POST and GET on each independent mirror.
         val endpoints = listOf(
-            "https://overpass.private.coffee/api/interpreter",
+            "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+            "https://lz4.overpass-api.de/api/interpreter",
+            "https://z.overpass-api.de/api/interpreter",
             "https://overpass-api.de/api/interpreter",
-            "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+            "https://overpass.private.coffee/api/interpreter"
         )
         val failures = mutableListOf<String>()
         for (endpoint in endpoints) {
-            repeat(2) { attempt ->
+            val host = endpoint.substringAfter("https://").substringBefore("/")
+            for (method in listOf("POST", "GET")) {
                 try {
-                    val response = postOverpass(endpoint, query)
+                    val response = if (method == "POST") {
+                        postOverpass(endpoint, query)
+                    } else {
+                        getOverpass(endpoint, query)
+                    }
                     val payload = JSONObject(response)
                     if (payload.optJSONArray("elements") == null) {
                         throw IOException("Overpass returned an invalid response: missing elements array.")
@@ -92,15 +100,42 @@ object OpenPlaceSearch {
                 } catch (e: Exception) {
                     val status = (e as? OverpassHttpException)?.statusCode
                     if (status != null && status != 408 && status != 429 && status !in 500..599) {
-                        throw IOException("Overpass rejected the search request (HTTP $status). Please check the category or try again later.")
+                        throw IOException("Overpass rejected the search request (HTTP $status). Please try again later.")
                     }
-                    val detail = e.message?.take(140) ?: e.javaClass.simpleName
-                    failures += endpoint.substringAfter("https://").substringBefore("/") + ": " + detail
-                    if (attempt == 0) Thread.sleep(if (status == 429) 2000L else 1000L)
+                    val detail = e.message?.replace(Regex("\\s+"), " ")?.take(110)
+                        ?: e.javaClass.simpleName
+                    failures += "$host $method: $detail"
+                    if (status == 429) Thread.sleep(2000L)
+                    else if (status == 408 || status in 500..599 || status == null) Thread.sleep(1000L)
                 }
             }
         }
-        throw IOException("OpenStreetMap search is temporarily unavailable. Tried multiple servers. " + failures.distinct().take(3).joinToString(" | "))
+        throw IOException(
+            "OpenStreetMap search failed on all public Overpass servers. " +
+                failures.joinToString(" | ")
+        )
+    }
+
+    private fun getOverpass(endpoint: String, query: String): String {
+        val encoded = URLEncoder.encode(query, Charsets.UTF_8.name())
+        val connection = (URL("$endpoint?data=$encoded").openConnection() as HttpURLConnection).apply {
+            requestMethod = "GET"
+            connectTimeout = 12000
+            readTimeout = 35000
+            setRequestProperty("User-Agent", USER_AGENT)
+            setRequestProperty("Accept", "application/json")
+        }
+        try {
+            val status = connection.responseCode
+            val stream = if (status in 200..299) connection.inputStream else connection.errorStream
+            if (status !in 200..299) {
+                stream?.close()
+                throw OverpassHttpException(status)
+            }
+            return stream?.use { readBoundedResponse(it, MAX_OVERPASS_RESPONSE_BYTES) }.orEmpty()
+        } finally {
+            connection.disconnect()
+        }
     }
 
     private fun readBoundedResponse(input: java.io.InputStream, maxBytes: Int): String {
