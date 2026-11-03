@@ -37,6 +37,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.runInterruptible
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -103,7 +104,7 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                     searchJob = scope.launch {
                         try {
                             results = withContext(Dispatchers.IO) {
-                                OpenPlaceSearch.search(selectedCategory, selectedLocation, selectedRadius)
+                                runInterruptible { OpenPlaceSearch.search(selectedCategory, selectedLocation, selectedRadius) }
                             }
                             if (results.isEmpty()) error = "No named places found. Try a broader category or nearby city."
                         } catch (e: CancellationException) {
