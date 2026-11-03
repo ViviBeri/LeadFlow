@@ -200,7 +200,7 @@ object OpenPlaceSearch {
     ): List<PlaceResult> {
         val osmTag = when {
             category.contains("restaurant", true) || category.contains("food", true) -> "amenity:restaurant"
-            category.contains("hotel", true) || category.contains("lodging", true) -> "tourism:hotel"
+            category.contains("hotel", true) || category.contains("lodging", true) || category.contains("hostel", true) || category.contains("motel", true) || category.contains("guest house", true) || category.contains("guesthouse", true) -> "tourism:hotel"
             category.contains("cafe", true) || category.contains("café", true) || category.contains("coffee", true) -> "amenity:cafe"
             category.contains("bakery", true) -> "shop:bakery"
             category.contains("bar", true) -> "amenity:bar"
@@ -274,7 +274,7 @@ object OpenPlaceSearch {
     private fun categoryFilters(category: String): List<String> {
         val value = category.trim().lowercase()
         return when {
-            "hotel" in value || "lodging" in value -> listOf("""["tourism"="hotel"]""", """["tourism"="guest_house"]""")
+            "hotel" in value || "lodging" in value || "hostel" in value || "motel" in value || "guest house" in value || "guesthouse" in value -> listOf("""["tourism"="hotel"]""", """["tourism"="guest_house"]""", """["tourism"="hostel"]""", """["tourism"="motel"]""", """["tourism"="apartment"]""", """["tourism"="chalet"]""")
             "restaurant" in value || "food" in value -> listOf("""["amenity"="restaurant"]""")
             "cafe" in value || "café" in value || "coffee" in value -> listOf("""["amenity"="cafe"]""")
             "bakery" in value -> listOf("""["shop"="bakery"]""")
