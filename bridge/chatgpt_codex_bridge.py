@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shlex
 import signal
 import subprocess
 import sys
@@ -114,6 +113,9 @@ Execution requirements:
     stdout = result.stdout or ""
     stderr = result.stderr or ""
 
+    if result.returncode != 0:
+        raise RuntimeError(f"Codex exited with {result.returncode}.\\n{output_tail(stderr)}\\n{output_tail(stdout, 2000)}")
+
     # Do not publish raw command output that may contain environment data.
     check = run(["git", "diff", "--check"], cwd=cwd, check=False)
     if check.returncode != 0:
@@ -132,7 +134,7 @@ Execution requirements:
 
     run(["git", "push", "--set-upstream", "origin", branch], cwd=cwd, timeout=300)
     pr = run([
-        "pr", "create", "--repo", repo, "--base", "main", "--head", branch,
+        "gh", "pr", "create", "--repo", repo, "--base", "main", "--head", branch,
         "--title", f"Codex: {title[len(PREFIX):].strip()}",
         "--body", f"Automated implementation of #{number}.\n\n"
                   "Codex ran in the repository Codespace. Review the diff and CI before merging.\n\n"
