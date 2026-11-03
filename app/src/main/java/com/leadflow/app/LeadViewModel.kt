@@ -29,6 +29,9 @@ class LeadViewModel(app: Application) : AndroidViewModel(app) {
     val totalCount: StateFlow<Int> = dao.observeCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
+    val allLeadsFlow: StateFlow<List<Lead>> = dao.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     fun setQuery(q: String) { query.value = q }
 
     fun addLead(name: String, address: String, phone: String, notes: String, email: String = "", website: String = "", onDone: () -> Unit) {
