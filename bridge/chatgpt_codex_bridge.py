@@ -54,12 +54,12 @@ def ensure_labels(repo: str, cwd: Path):
     existing = {x["name"] for x in gh_json(["label", "list", "--repo", repo, "--json", "name"], cwd)}
     for name, (color, description) in labels.items():
         if name not in existing:
-            run(["label", "create", name, "--repo", repo, "--color", color,
+            run(["gh", "label", "create", name, "--repo", repo, "--color", color,
                  "--description", description], cwd=cwd, check=False)
 
 
 def comment(repo: str, number: int, body: str, cwd: Path):
-    run(["issue", "comment", str(number), "--repo", repo, "--body", body],
+    run(["gh", "issue", "comment", str(number), "--repo", repo, "--body", body],
         cwd=cwd, check=False)
 
 
@@ -80,7 +80,7 @@ def process_issue(issue: dict, *, repo: str, cwd: Path, trusted_author: str):
         raise RuntimeError("Working tree is not clean. Commit or stash existing changes before processing tasks.")
 
     branch = f"codex/chatgpt-issue-{number}"
-    run(["issue", "edit", str(number), "--repo", repo, "--add-label", "codex-in-progress"], cwd=cwd)
+    run(["gh", "issue", "edit", str(number), "--repo", repo, "--add-label", "codex-in-progress"], cwd=cwd)
 
     run(["git", "fetch", "origin", "main"], cwd=cwd, timeout=180)
     remote = run(["git", "ls-remote", "--heads", "origin", branch], cwd=cwd).stdout.strip()
@@ -144,7 +144,7 @@ Execution requirements:
     if result.returncode != 0:
         raise RuntimeError(f"Codex exited with {result.returncode}.\n{output_tail(stderr)}\n{report}")
 
-    run(["issue", "edit", str(number), "--repo", repo, "--remove-label",
+    run(["gh", "issue", "edit", str(number), "--repo", repo, "--remove-label",
          "codex-in-progress", "--add-label", "codex-pr-ready"], cwd=cwd, check=False)
     comment(repo, number,
             f"Codex completed this task on branch `{branch}`.\n\n"
@@ -189,7 +189,7 @@ def main():
                         print(f"Completed issue #{issue['number']}")
                 except Exception as exc:
                     number = int(issue["number"])
-                    run(["issue", "edit", str(number), "--repo", args.repo,
+                    run(["gh", "issue", "edit", str(number), "--repo", args.repo,
                          "--remove-label", "codex-in-progress", "--add-label", "codex-failed"],
                         cwd=cwd, check=False)
                     comment(args.repo, number, f"Codex bridge failed safely:\n\n```text\n{str(exc)[:3000]}\n```", cwd)
