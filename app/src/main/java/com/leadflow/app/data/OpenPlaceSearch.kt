@@ -33,7 +33,7 @@ object OpenPlaceSearch {
             relation(around:$radiusMeters,$lat,$lon)$filter;
             """.trimIndent()
         }
-        val query = "[out:json][timeout:25];\n(\n$clauses\n);\nout center tags;"
+        val query = "[out:json][timeout:15];\n(\n$clauses\n);\nout center tags;"
         val json = JSONObject(requestOverpass(query))
         val elements = json.optJSONArray("elements") ?: return emptyList()
         val results = ArrayList<PlaceResult>()
@@ -72,40 +72,37 @@ object OpenPlaceSearch {
 
 
     private fun requestOverpass(query: String): String {
-        // Public instances are best-effort. Try POST, then GET on each global mirror.
+        // Fail fast: do not wait through POST and GET on every public mirror.
+        // The complete Overpass fallback sequence has a strict 20-second budget.
         val endpoints = listOf(
-            // Public instances can be temporarily overloaded or unreachable from mobile networks.
             "https://overpass-api.de/api/interpreter",
             "https://lz4.overpass-api.de/api/interpreter",
-            "https://overpass.private.coffee/api/interpreter",
-            "https://overpass.kumi.systems/api/interpreter",
-            "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+            "https://overpass.private.coffee/api/interpreter"
         )
+        val deadline = System.nanoTime() + 20_000_000_000L
+        var attempts = 0
         val failures = mutableListOf<String>()
+
         for (endpoint in endpoints) {
+            val remainingMs = ((deadline - System.nanoTime()) / 1_000_000L).toInt()
+            if (remainingMs <= 0) break
+            attempts++
             val host = endpoint.substringAfter("https://").substringBefore("/")
-            for (method in listOf("POST", "GET")) {
-                try {
-                    val response = if (method == "POST") {
-                        postOverpass(endpoint, query)
-                    } else {
-                        getOverpass(endpoint, query)
-                    }
-                    val payload = JSONObject(response)
-                    if (!payload.has("elements")) {
-                        throw IOException("Invalid Overpass JSON response")
-                    }
-                    return response
-                } catch (e: Exception) {
-                    val detail = e.message?.replace(Regex("\\s+"), " ")?.take(100)
-                        ?: e.javaClass.simpleName
-                    failures += "$host $method: $detail"
-                }
+            try {
+                val response = postOverpass(endpoint, query, remainingMs.coerceAtMost(9000))
+                val payload = JSONObject(response)
+                if (!payload.has("elements")) throw IOException("Invalid Overpass JSON response")
+                return response
+            } catch (e: Exception) {
+                val detail = e.message?.replace(Regex("\\s+"), " ")?.take(80)
+                    ?: e.javaClass.simpleName
+                failures += "$host: $detail"
             }
         }
+
         throw IOException(
-            "OpenStreetMap place search is temporarily unavailable. All configured search servers " +
-                "failed (" + failures.size + " attempts). Check your internet connection and try again in a few minutes."
+            "Place search timed out or the OpenStreetMap servers are busy. " +
+                "Tried $attempts servers (20-second limit). Please retry, or try again later."
         )
     }
 
@@ -129,7 +126,7 @@ object OpenPlaceSearch {
         }
     }
 
-    private fun postOverpass(endpoint: String, query: String): String {
+    private fun postOverpass(endpoint: String, query: String, timeoutMs: Int): String {
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
             connectTimeout = 12000
