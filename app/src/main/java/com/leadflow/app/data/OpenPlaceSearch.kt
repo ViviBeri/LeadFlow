@@ -83,11 +83,7 @@ object OpenPlaceSearch {
                 )
             )
         }
-        return results.sortedBy { it.name.lowercase() }
-    }
-
-
-    private fun requestOverpass(query: String): String {
+        // A valid but empty Overpass response can still miss records returned by Photon.\n        // Use Photon as a fallback for empty categories as well as provider failures.\n        if (results.isEmpty()) {\n            return searchWithPhoton(category, location, lat, lon, radiusMeters)\n        }\n        return results.sortedBy { it.name.lowercase() }\n    }\n\n\n    private fun requestOverpass(query: String): String {
         val endpoints = listOf(
             "https://overpass-api.de/api/interpreter",
             "https://lz4.overpass-api.de/api/interpreter",
