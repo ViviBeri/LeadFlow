@@ -162,8 +162,8 @@ object OpenPlaceSearch {
     private fun postOverpass(endpoint: String, query: String, timeoutMs: Int): String {
         val connection = (URL(endpoint).openConnection() as HttpURLConnection).apply {
             requestMethod = "POST"
-            connectTimeout = 12000
-            readTimeout = 35000
+            connectTimeout = timeoutMs.coerceAtMost(5000)
+            readTimeout = timeoutMs.coerceAtMost(9000)
             doOutput = true
             setRequestProperty("User-Agent", USER_AGENT)
             setRequestProperty("Accept", "application/json")
@@ -209,8 +209,8 @@ object OpenPlaceSearch {
     private fun requestText(address: String): String {
         val connection = (URL(address).openConnection() as HttpURLConnection).apply {
             requestMethod = "GET"
-            connectTimeout = 12000
-            readTimeout = 10000
+            connectTimeout = 4000
+            readTimeout = 7000
             setRequestProperty("User-Agent", USER_AGENT)
             setRequestProperty("Accept", "application/json")
         }
