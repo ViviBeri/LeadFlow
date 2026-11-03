@@ -19,6 +19,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,8 @@ import com.leadflow.app.data.OpenPlaceSearch
 import com.leadflow.app.data.PlaceResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withContext
 
 @Composable
@@ -49,6 +52,11 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
     var sortByCategory by remember { mutableStateOf(false) }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    var searchJob by remember { mutableStateOf<Job?>(null) }
+
+    DisposableEffect(Unit) {
+        onDispose { searchJob?.cancel() }
+    }
 
     LfScaffold(title = "Discover Places", onBack = onBack) { padding ->
         Column(
@@ -92,12 +100,14 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                     val selectedCategory = category.trim()
                     val selectedLocation = location.trim()
                     val selectedRadius = ((radius.toDoubleOrNull() ?: 5.0).coerceIn(0.5, 25.0) * 1000.0).roundToInt()
-                    scope.launch {
+                    searchJob = scope.launch {
                         try {
                             results = withContext(Dispatchers.IO) {
                                 OpenPlaceSearch.search(selectedCategory, selectedLocation, selectedRadius)
                             }
                             if (results.isEmpty()) error = "No named places found. Try a broader category or nearby city."
+                        } catch (e: CancellationException) {
+                            throw e
                         } catch (e: Exception) {
                             error = e.message ?: "Search failed. Check your internet connection and try again."
                         } finally {
