@@ -72,24 +72,34 @@ object OpenPlaceSearch {
 
 
     private fun requestOverpass(query: String): String {
+        // Public Overpass instances are independent best-effort services.
+        // Try distinct global mirrors once each before reporting a useful diagnostic.
         val endpoints = listOf(
-            "https://overpass.private.coffee/api/interpreter",
+            "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
+            "https://lz4.overpass-api.de/api/interpreter",
+            "https://z.overpass-api.de/api/interpreter",
             "https://overpass-api.de/api/interpreter",
-            "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+            "https://overpass.private.coffee/api/interpreter"
         )
         val failures = mutableListOf<String>()
         for (endpoint in endpoints) {
-            repeat(2) { attempt ->
-                try {
-                    return postOverpass(endpoint, query)
-                } catch (e: Exception) {
-                    val detail = e.message?.take(140) ?: e.javaClass.simpleName
-                    failures += endpoint.substringAfter("https://").substringBefore("/") + ": " + detail
-                    if (attempt == 0) Thread.sleep(700)
-                }
+            val host = endpoint.substringAfter("https://").substringBefore("/")
+            try {
+                val response = postOverpass(endpoint, query)
+                // Validate the payload before accepting an endpoint. Some proxies return
+                // HTML error pages with HTTP 200, which must not block the next mirror.
+                JSONObject(response)
+                return response
+            } catch (e: Exception) {
+                val detail = e.message?.replace(Regex("\\s+"), " ")?.take(110)
+                    ?: e.javaClass.simpleName
+                failures += "$host: $detail"
             }
         }
-        throw IOException("OpenStreetMap search is temporarily unavailable. Tried multiple servers. " + failures.distinct().take(3).joinToString(" | "))
+        throw IOException(
+            "OpenStreetMap search failed on all public Overpass servers. " +
+                failures.joinToString(" | ")
+        )
     }
 
     private fun postOverpass(endpoint: String, query: String): String {
