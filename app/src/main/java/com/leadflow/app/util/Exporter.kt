@@ -78,10 +78,21 @@ object Exporter {
     }
 
     // ---------------------------------------------------------------- PDF
-    private fun fit(p: Paint, s: String, width: Float): String {
-        val clean = s.replace("\n", " ")
-        val n = p.breakText(clean, true, width, null)
-        return if (n < clean.length) clean.take(maxOf(0, n - 1)) + "…" else clean
+    private fun wrap(p: Paint, text: String, width: Float): List<String> {
+        var remaining = text.replace('\r', ' ').replace('\n', ' ').trim()
+        if (remaining.isEmpty()) return listOf("")
+        val lines = mutableListOf<String>()
+        while (remaining.isNotEmpty()) {
+            val measured = p.breakText(remaining, true, width, null).coerceAtLeast(1)
+            var end = measured.coerceAtMost(remaining.length)
+            if (end < remaining.length) {
+                val boundary = remaining.lastIndexOf(' ', end - 1)
+                if (boundary > 0) end = boundary
+            }
+            lines += remaining.substring(0, end).trimEnd()
+            remaining = remaining.substring(end).trimStart()
+        }
+        return lines
     }
 
     fun toPdf(leads: List<Lead>): ByteArray {
@@ -93,7 +104,7 @@ object Exporter {
         val title = Paint().apply { textSize = 16f; isFakeBoldText = true }
         val head = Paint().apply { textSize = 11f; isFakeBoldText = true }
         val body = Paint().apply { textSize = 10f }
-
+        val lineHeight = 12f
         val doc = PdfDocument()
         var page: PdfDocument.Page? = null
         var canvas: Canvas? = null
@@ -116,15 +127,23 @@ object Exporter {
         }
 
         newPage()
-        leads.forEach { l ->
-            if (y > pageH - 40) newPage()
-            row(l).forEachIndexed { i, t ->
-                canvas!!.drawText(fit(body, t, colW[i] - 8f), colX[i], y, body)
+        leads.forEach { lead ->
+            val cells = row(lead).mapIndexed { index, value ->
+                wrap(body, value, colW[index] - 8f)
             }
-            y += 20f
+            val lineCount = cells.maxOf { it.size }
+            for (line in 0 until lineCount) {
+                if (y > pageH - 32f) newPage()
+                cells.forEachIndexed { column, lines ->
+                    if (line < lines.size) {
+                        canvas!!.drawText(lines[line], colX[column], y, body)
+                    }
+                }
+                y += lineHeight
+            }
+            y += 4f
         }
         page?.let { doc.finishPage(it) }
-
         val out = ByteArrayOutputStream()
         doc.writeTo(out)
         doc.close()
