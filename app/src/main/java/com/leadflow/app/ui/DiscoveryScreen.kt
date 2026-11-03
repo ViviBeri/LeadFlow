@@ -46,7 +46,7 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
     var error by remember { mutableStateOf<String?>(null) }
     var searched by remember { mutableStateOf(false) }
     var resultFilter by remember { mutableStateOf("") }
-    var sortByCategory by remember { mutableStateOf(false) }
+    var sortMode by remember { mutableStateOf("Name") }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -145,8 +145,11 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                             it.category.contains(resultFilter, ignoreCase = true)
                     }
                     .let { list ->
-                        if (sortByCategory) list.sortedWith(compareBy<PlaceResult> { it.category }.thenBy { it.name })
-                        else list.sortedBy { it.name }
+                        when (sortMode) {
+                            "Category" -> list.sortedWith(compareBy<PlaceResult> { it.category }.thenBy { it.name })
+                            "Distance" -> list.sortedBy { if (it.distanceMeters < 0) Int.MAX_VALUE else it.distanceMeters }
+                            else -> list.sortedBy { it.name }
+                        }
                     }
                 Text("${visibleResults.size} of ${results.size} places", style = MaterialTheme.typography.titleMedium)
                 OutlinedTextField(
@@ -156,8 +159,15 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                     label = { Text("Filter results by name, address or type") },
                     singleLine = true
                 )
-                TextButton(onClick = { sortByCategory = !sortByCategory }) {
-                    Text(if (sortByCategory) "Sort: Name" else "Sort: Category")
+                TextButton(onClick = {
+                    sortMode = when (sortMode) { "Name" -> "Category"; "Category" -> "Distance"; else -> "Name" }
+                }) { Text("Sort: $sortMode (tap to change)") }
+                if (results.size >= OpenPlaceSearch.MAX_RESULTS) {
+                    Text(
+                        "Showing the first ${OpenPlaceSearch.MAX_RESULTS} places. Reduce the radius or use a more specific category to see others.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
                 if (visibleResults.isEmpty()) {
                     Text("No matching places. Try a different filter.")
@@ -184,6 +194,10 @@ private fun PlaceCard(place: PlaceResult, onOpen: () -> Unit, onSave: () -> Unit
             Text(place.name, style = MaterialTheme.typography.titleMedium)
             Text(place.category.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium)
             Text(place.address, style = MaterialTheme.typography.bodyMedium)
+            if (place.distanceMeters >= 0) {
+                val d = place.distanceMeters
+                Text(if (d < 1000) "$d m from search centre" else "%.1f km from search centre".format(d / 1000.0))
+            }
             if (place.phone.isNotBlank()) Text("Phone: ${place.phone}")
             if (place.website.isNotBlank()) Text("Website: ${place.website}")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
