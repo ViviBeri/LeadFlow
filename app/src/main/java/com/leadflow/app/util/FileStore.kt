@@ -76,20 +76,23 @@ object FileStore {
                 return false
             }
 
-            previousIds.forEach { id ->
-                runCatching {
-                    resolver.delete(ContentUris.withAppendedId(collection, id), null, null)
-                }
-            }
-            val restoreName = ContentValues().apply {
+                        val restoreName = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
             }
             val renamed = runCatching {
                 resolver.update(uri, restoreName, null, null) == 1
             }.getOrDefault(false)
+
             if (!renamed) {
-                runCatching { resolver.delete(uri, null, null) }
-                return false
+                // Keep the published file and all previous exports.
+                // MediaStore may have assigned a collision-safe filename.
+                return true
+            }
+
+            previousIds.forEach { id ->
+                runCatching {
+                    resolver.delete(ContentUris.withAppendedId(collection, id), null, null)
+                }
             }
             return true
         }
