@@ -297,6 +297,7 @@ object OpenPlaceSearch {
                         """["tourism"="guest_house"]""",
                         """["tourism"="hostel"]""",
                         """["tourism"="motel"]""",
+                        """["tourism"="resort"]""",
                         """["tourism"="apartment"]""",
                         """["tourism"="chalet"]"""
                     )
