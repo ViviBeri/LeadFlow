@@ -279,7 +279,7 @@ object OpenPlaceSearch {
         return 2 * earthRadius * kotlin.math.atan2(kotlin.math.sqrt(a), kotlin.math.sqrt(1 - a))
     }
 
-    private fun categoryFilters(category: String): List<String> {
+    internal fun categoryFilters(category: String): List<String> {
         // Accept comma-, semicolon-, or pipe-separated categories, e.g.
         // "hotel, resort, guest house". Keep the Overpass request to one query.
         val terms = category.split(',', ';', '|')
