@@ -33,7 +33,7 @@ fun LeadFlowApp() {
     val nav = rememberNavController()
     val vm: LeadViewModel = viewModel()
     val count by vm.totalCount.collectAsState()
-    val leads by vm.leads.collectAsState()
+    val leads by vm.allLeadsFlow.collectAsState()
 
     NavHost(navController = nav, startDestination = "home") {
         composable("home") {

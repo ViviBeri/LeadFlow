@@ -12,13 +12,22 @@ interface LeadDao {
     /** Empty query matches everything; otherwise matches business name OR address (area). */
     @Query(
         "SELECT * FROM leads " +
-        "WHERE businessName LIKE '%' || :q || '%' OR address LIKE '%' || :q || '%' OR email LIKE '%' || :q || '%' OR website LIKE '%' || :q || '%' " +
+        "WHERE businessName LIKE '%' || :q || '%' OR address LIKE '%' || :q || '%' OR email LIKE '%' || :q || '%' OR website LIKE '%' || :q || '%' OR tags LIKE '%' || :q || '%' " +
         "ORDER BY createdAt DESC"
     )
     fun search(q: String): Flow<List<Lead>>
 
+    @Query("SELECT EXISTS(SELECT 1 FROM leads WHERE id != :leadId AND LOWER(TRIM(businessName)) = LOWER(TRIM(:name)) AND LOWER(TRIM(address)) = LOWER(TRIM(:address)) LIMIT 1)")
+    suspend fun existsDuplicateForUpdate(leadId: Long, name: String, address: String): Boolean
+
     @Query("UPDATE leads SET businessName = :name, address = :address, phone = :phone, email = :email, website = :website WHERE id = :leadId")
-    suspend fun updateContactDetails(leadId: Long, name: String, address: String, phone: String, email: String, website: String)
+    suspend fun updateContactDetails(leadId: Long, name: String, address: String, phone: String, email: String, website: String): Int
+
+    @Transaction
+    suspend fun updateContactDetailsIfUnique(leadId: Long, name: String, address: String, phone: String, email: String, website: String): Boolean {
+        if (existsDuplicateForUpdate(leadId, name, address)) return false
+        return updateContactDetails(leadId, name.trim(), address.trim(), phone, email, website) > 0
+    }
 
     @Query("UPDATE leads SET status = :status WHERE id = :leadId")
     suspend fun updateStatus(leadId: Long, status: String)
@@ -43,6 +52,9 @@ interface LeadDao {
 
     @Query("SELECT * FROM leads ORDER BY createdAt DESC")
     suspend fun getAll(): List<Lead>
+
+    @Query("SELECT * FROM leads ORDER BY createdAt DESC")
+    fun observeAll(): Flow<List<Lead>>
 
     @Query(
         "SELECT EXISTS(SELECT 1 FROM leads " +

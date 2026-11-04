@@ -13,7 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -31,11 +31,10 @@ import java.util.Locale
 @Composable
 fun ReportsScreen(vm: LeadViewModel, onBack: () -> Unit) {
     val context = LocalContext.current
-    var allLeads by remember { mutableStateOf<List<Lead>>(emptyList()) }
+    val allLeads by vm.allLeadsFlow.collectAsState()
     var range by remember { mutableStateOf("30 days") }
     var customStart by remember { mutableStateOf(dayStart(Calendar.getInstance()).timeInMillis - 29L * 24 * 60 * 60 * 1000) }
     var customEnd by remember { mutableStateOf(dayEnd(Calendar.getInstance()).timeInMillis) }
-    LaunchedEffect(Unit) { allLeads = vm.allLeads() }
 
     val today = Calendar.getInstance()
     val start = when (range) {
