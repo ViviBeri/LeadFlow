@@ -14,6 +14,7 @@ class OpenPlaceSearchTest {
         assertTrue(filters.contains("""["tourism"="guest_house"]"""))
         assertTrue(filters.contains("""["tourism"="hostel"]"""))
         assertTrue(filters.contains("""["tourism"="motel"]"""))
+        assertTrue(filters.contains("""["tourism"="resort"]"""))
     }
 
     @Test
