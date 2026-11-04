@@ -129,7 +129,7 @@ object OpenPlaceSearch {
             }
 
             // Race independent mirrors. A healthy server wins without waiting for
-            // slower or unreachable mirrors; the whole lookup is bounded to 20 seconds.
+            // slower or unreachable mirrors; this lookup has an 8-second overall deadline.
             val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(8)
             repeat(endpoints.size) {
                 val remaining = deadline - System.nanoTime()
@@ -277,19 +277,43 @@ object OpenPlaceSearch {
     }
 
     private fun categoryFilters(category: String): List<String> {
-        val value = category.trim().lowercase()
-        return when {
-            "hotel" in value || "lodging" in value || "hostel" in value || "motel" in value || "guest house" in value || "guesthouse" in value -> listOf("""["tourism"="hotel"]""", """["tourism"="guest_house"]""", """["tourism"="hostel"]""", """["tourism"="motel"]""", """["tourism"="apartment"]""", """["tourism"="chalet"]""")
-            "restaurant" in value || "food" in value -> listOf("""["amenity"="restaurant"]""")
-            "cafe" in value || "café" in value || "coffee" in value -> listOf("""["amenity"="cafe"]""")
-            "bakery" in value -> listOf("""["shop"="bakery"]""")
-            "bar" in value -> listOf("""["amenity"="bar"]""")
-            "pharmacy" in value -> listOf("""["amenity"="pharmacy"]""")
-            "supermarket" in value || "grocery" in value -> listOf("""["shop"="supermarket"]""")
-            "salon" in value -> listOf("""["shop"="hairdresser"]""")
-            "hospital" in value -> listOf("""["amenity"="hospital"]""")
-            else -> listOf("""["name"~".",i]""")
-        }
+        // Accept comma-, semicolon-, or pipe-separated categories, e.g.
+        // "hotel, resort, guest house". Keep the Overpass request to one query.
+        val terms = category.split(',', ';', '|')
+            .map { it.trim().lowercase() }
+            .filter { it.isNotBlank() }
+            .distinct()
+        val requestedTerms = terms.ifEmpty { listOf(category.trim().lowercase()) }
+
+        return requestedTerms.flatMap { value ->
+            when {
+                "hotel" in value || "lodging" in value || "resort" in value ||
+                    "hostel" in value || "motel" in value || "guest house" in value ||
+                    "guesthouse" in value -> listOf(
+                        """["tourism"="hotel"]""",
+                        """["tourism"="guest_house"]""",
+                        """["tourism"="hostel"]""",
+                        """["tourism"="motel"]""",
+                        """["tourism"="apartment"]""",
+                        """["tourism"="chalet"]"""
+                    )
+                "restaurant" in value || "food" in value -> listOf("""["amenity"="restaurant"]""")
+                "cafe" in value || "café" in value || "coffee" in value -> listOf("""["amenity"="cafe"]""")
+                "bakery" in value || "bake shop" in value -> listOf("""["shop"="bakery"]""")
+                "bar" in value || "pub" in value -> listOf("""["amenity"="bar"]""")
+                "pharmacy" in value || "chemist" in value -> listOf("""["amenity"="pharmacy"]""")
+                "supermarket" in value || "grocery" in value -> listOf(
+                    """["shop"="supermarket"]""",
+                    """["shop"="convenience"]"""
+                )
+                "salon" in value || "hairdresser" in value -> listOf("""["shop"="hairdresser"]""")
+                "hospital" in value || "clinic" in value -> listOf(
+                    """["amenity"="hospital"]""",
+                    """["amenity"="clinic"]"""
+                )
+                else -> listOf("""["name"~".",i]""")
+            }
+        }.distinct()
     }
 
     private fun geocode(location: String): Pair<Double, Double> {
