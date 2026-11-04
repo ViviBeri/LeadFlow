@@ -203,7 +203,10 @@ object OpenPlaceSearch {
         longitude: Double,
         radiusMeters: Int
     ): List<PlaceResult> {
-        val osmTag = when {
+        val categoryTerms = category.split(',', ';', '|').map { it.trim() }.filter { it.isNotBlank() }
+        // Photon accepts one OSM tag filter. For multi-category searches, omit
+        // that restrictive filter so the combined text query can find each term.
+        val osmTag = if (categoryTerms.size > 1) null else when {
             category.contains("restaurant", true) || category.contains("food", true) -> "amenity:restaurant"
             category.contains("hotel", true) || category.contains("lodging", true) || category.contains("hostel", true) || category.contains("motel", true) || category.contains("guest house", true) || category.contains("guesthouse", true) -> "tourism:hotel"
             category.contains("cafe", true) || category.contains("café", true) || category.contains("coffee", true) -> "amenity:cafe"
