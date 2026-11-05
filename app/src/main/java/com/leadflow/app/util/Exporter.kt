@@ -93,15 +93,13 @@ object Exporter {
                     } else {
                         if (line.isNotEmpty()) result.add(line.toString())
                         line = StringBuilder()
-                        val chars = word.toCharArray()
                         var offset = 0
-                        while (offset < chars.size) {
-                            val remainingCount = chars.size - offset
-                            val count = p.breakText(chars, offset, remainingCount, true, width, null)
+                        while (offset < word.length) {
+                            val count = p.breakText(word, offset, word.length, true, width, null)
                                 .coerceAtLeast(1)
-                                .coerceAtMost(remainingCount)
-                            val chunk = String(chars, offset, count)
-                            if (offset + count < chars.size) {
+                                .coerceAtMost(word.length - offset)
+                            val chunk = word.substring(offset, offset + count)
+                            if (offset + count < word.length) {
                                 result.add(chunk)
                             } else {
                                 line.append(chunk)
