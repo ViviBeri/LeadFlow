@@ -210,6 +210,7 @@ object OpenPlaceSearch {
             category.contains("restaurant", true) || category.contains("food", true) -> "amenity:restaurant"
             category.contains("hotel", true) || category.contains("lodging", true) || category.contains("hostel", true) || category.contains("motel", true) || category.contains("guest house", true) || category.contains("guesthouse", true) -> "tourism:hotel"
             category.contains("cafe", true) || category.contains("café", true) || category.contains("coffee", true) -> "amenity:cafe"
+            category.contains("theatre", true) || category.contains("theater", true) || category.contains("cinema", true) -> "amenity:theatre"
             category.contains("bakery", true) -> "shop:bakery"
             category.contains("bar", true) -> "amenity:bar"
             category.contains("pharmacy", true) -> "amenity:pharmacy"
@@ -303,6 +304,11 @@ object OpenPlaceSearch {
                     )
                 "restaurant" in value || "food" in value -> listOf("""["amenity"="restaurant"]""")
                 "cafe" in value || "café" in value || "coffee" in value -> listOf("""["amenity"="cafe"]""")
+                "theatre" in value || "theater" in value || "cinema" in value || "movie" in value || "performing art" in value -> listOf(
+                    """["amenity"="theatre"]""",
+                    """["amenity"="cinema"]""",
+                    """["amenity"="arts_centre"]"""
+                )
                 "bakery" in value || "bake shop" in value -> listOf("""["shop"="bakery"]""")
                 "bar" in value || "pub" in value -> listOf("""["amenity"="bar"]""")
                 "pharmacy" in value || "chemist" in value -> listOf("""["amenity"="pharmacy"]""")
