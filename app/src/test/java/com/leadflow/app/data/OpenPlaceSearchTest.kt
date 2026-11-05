@@ -34,6 +34,14 @@ class OpenPlaceSearchTest {
     }
 
     @Test
+    fun theatreAliasesIncludeEntertainmentVenueTags() {
+        val filters = search.categoryFilters("theater, cinema")
+        assertTrue(filters.contains("""["amenity"="theatre"]"""))
+        assertTrue(filters.contains("""["amenity"="cinema"]"""))
+        assertTrue(filters.contains("""["amenity"="arts_centre"]"""))
+    }
+
+    @Test
     fun bakerySearchIncludesBakeryTag() {
         assertEquals(
             listOf("""["shop"="bakery"]"""),
