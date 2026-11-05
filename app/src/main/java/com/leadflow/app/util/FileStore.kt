@@ -7,19 +7,20 @@ import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
 import java.io.File
+import java.util.UUID
 
 data class SavedExport(val shareFile: File, val inDownloads: Boolean)
 
 object FileStore {
     /**
-     * Publishes complete files only. Existing exports are retained until replacements
-     * have been written successfully.
+     * Saves a complete private share file, then attempts to publish a Downloads copy.
+     * A failed Downloads save does not invalidate the private share file.
      */
     fun save(context: Context, fileName: String, mime: String, bytes: ByteArray): SavedExport {
         val dir = File(context.filesDir, "exports")
         if (!dir.exists() && !dir.mkdirs()) throw IllegalStateException("Unable to create export directory")
         val shareFile = File(dir, fileName)
-        val temporary = File(dir, ".$fileName.tmp")
+        val temporary = File(dir, ".$fileName.${UUID.randomUUID()}.tmp")
         try {
             temporary.writeBytes(bytes)
             if (!temporary.renameTo(shareFile)) {
@@ -36,6 +37,10 @@ object FileStore {
         return SavedExport(shareFile, inDownloads)
     }
 
+    /**
+     * Publishes a Downloads copy and removes older exact-name copies only after
+     * confirming that MediaStore kept the requested filename.
+     */
     private fun copyToDownloads(context: Context, fileName: String, mime: String, bytes: ByteArray): Boolean {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver = context.contentResolver
@@ -76,7 +81,7 @@ object FileStore {
                 return false
             }
 
-                        val restoreName = ContentValues().apply {
+            val restoreName = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
             }
             val renamed = runCatching {
@@ -85,8 +90,25 @@ object FileStore {
 
             if (!renamed) {
                 // Keep the published file and all previous exports.
+                return false
+            }
+
+            val effectiveName = runCatching {
+                resolver.query(
+                    uri,
+                    arrayOf(MediaStore.Downloads.DISPLAY_NAME),
+                    null,
+                    null,
+                    null
+                )?.use { cursor ->
+                    if (cursor.moveToFirst()) cursor.getString(0) else null
+                }
+            }.getOrNull()
+
+            if (effectiveName != fileName) {
                 // MediaStore may have assigned a collision-safe filename.
-                return true
+                // Preserve older exports because the requested name was not obtained.
+                return false
             }
 
             previousIds.forEach { id ->
@@ -105,7 +127,7 @@ object FileStore {
         if (!directory.exists() && !directory.mkdirs()) return false
 
         val target = File(directory, fileName)
-        val temporary = File(directory, ".$fileName.tmp")
+        val temporary = File(directory, ".$fileName.${UUID.randomUUID()}.tmp")
         return try {
             temporary.writeBytes(bytes)
             if (!temporary.renameTo(target)) error("Unable to publish Downloads export")
