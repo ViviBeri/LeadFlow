@@ -117,7 +117,7 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Search places by category, typed location and configurable radius (500–25,000 metres); lodging searches include hotels, guest houses, hostels, motels, tourism apartments and chalets where those OpenStreetMap tags are available
 - Search multiple categories in one request using commas, semicolons or pipes, for example `hotel, resort, guest house` or `bakery | café`; matching OpenStreetMap filters are combined and duplicate filters are removed
 - Recognize category aliases including lodging types, bake shops, pubs, chemists, grocery stores, hairdressers and clinics; actual matches still depend on OpenStreetMap tagging and local coverage
-- Initial category coverage for restaurants, hotels, guest houses, hostels, motels, serviced apartments, cafés, bakeries, bars, pharmacies, supermarkets, salons and hospitals
+- Initial category coverage for restaurants, hotels, guest houses, hostels, motels, serviced apartments, theatres, cinemas, arts centres, cafés, bakeries, bars, pharmacies, supermarkets, salons and hospitals
 - Filter fetched results by name, address or category
 - Sort results by name or category
 - View available address, phone number and website details
