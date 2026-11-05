@@ -59,6 +59,7 @@ object FileStore {
             }
 
             val stagedPreviousIds = mutableListOf<Long>()
+            val stagedPreviousNames = mutableMapOf<Long, String>()
 
             fun restorePreviousRows() {
                 stagedPreviousIds.forEach { id ->
@@ -89,6 +90,7 @@ object FileStore {
                         return false
                     }
                     stagedPreviousIds.add(id)
+                    stagedPreviousNames[id] = backupName
                 }
             }
 
@@ -151,9 +153,35 @@ object FileStore {
                 return false
             }
 
+            val exactExportSelection =
+                "${MediaStore.Downloads.DISPLAY_NAME}=? AND ${MediaStore.Downloads.RELATIVE_PATH}=?"
+
             previousIds.forEach { id ->
-                runCatching {
-                    resolver.delete(ContentUris.withAppendedId(collection, id), null, null)
+                // Android 10 rows are still under their unique staging names here.
+                // On newer Android versions, the expected name remains fileName.
+                val expectedName = stagedPreviousNames[id] ?: fileName
+                val expectedArgs = arrayOf(expectedName, relativePath)
+                val previousUri = ContentUris.withAppendedId(collection, id)
+                val stillMatches = resolver.query(
+                    previousUri,
+                    arrayOf(
+                        MediaStore.Downloads.DISPLAY_NAME,
+                        MediaStore.Downloads.RELATIVE_PATH
+                    ),
+                    exactExportSelection,
+                    expectedArgs,
+                    null
+                )?.use { cursor ->
+                    cursor.moveToFirst() &&
+                        cursor.getString(0) == expectedName &&
+                        cursor.getString(1) == relativePath
+                } == true
+
+                // If a user or another app renamed/moved the old file, leave it alone.
+                if (stillMatches) {
+                    check(
+                        resolver.delete(previousUri, exactExportSelection, expectedArgs) == 1
+                    ) { "Unable to remove the replaced Downloads export" }
                 }
             }
             return true
