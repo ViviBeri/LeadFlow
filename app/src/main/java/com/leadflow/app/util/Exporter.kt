@@ -93,13 +93,21 @@ object Exporter {
                     } else {
                         if (line.isNotEmpty()) result.add(line.toString())
                         line = StringBuilder()
-                        var remaining = word
-                        while (remaining.isNotEmpty() && p.measureText(remaining) > width) {
-                            val count = p.breakText(remaining, true, width, null).coerceAtLeast(1).coerceAtMost(remaining.length)
-                            result.add(remaining.take(count))
-                            remaining = remaining.drop(count)
+                        val chars = word.toCharArray()
+                        var offset = 0
+                        while (offset < chars.size) {
+                            val remainingCount = chars.size - offset
+                            val count = p.breakText(chars, offset, remainingCount, true, width, null)
+                                .coerceAtLeast(1)
+                                .coerceAtMost(remainingCount)
+                            val chunk = String(chars, offset, count)
+                            if (offset + count < chars.size) {
+                                result.add(chunk)
+                            } else {
+                                line.append(chunk)
+                            }
+                            offset += count
                         }
-                        line.append(remaining)
                     }
                 }
                 if (line.isNotEmpty()) result.add(line.toString())
