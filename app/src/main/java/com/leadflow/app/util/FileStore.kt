@@ -58,13 +58,51 @@ object FileStore {
                 while (cursor.moveToNext()) previousIds.add(cursor.getLong(0))
             }
 
+            val stagedPreviousIds = mutableListOf<Long>()
+
+            fun restorePreviousRows() {
+                stagedPreviousIds.forEach { id ->
+                    runCatching {
+                        val restore = ContentValues().apply {
+                            put(MediaStore.Downloads.DISPLAY_NAME, fileName)
+                        }
+                        resolver.update(ContentUris.withAppendedId(collection, id), restore, null, null)
+                    }
+                }
+                stagedPreviousIds.clear()
+            }
+
+            // Android 10 does not reliably allow inserting a second row with the
+            // same Downloads name while the old row still occupies that path.
+            // Temporarily rename old rows, then restore them if replacement fails.
+            if (Build.VERSION.SDK_INT == Build.VERSION_CODES.Q) {
+                for (id in previousIds) {
+                    val backupName = ".$fileName.${UUID.randomUUID()}.backup"
+                    val rename = ContentValues().apply {
+                        put(MediaStore.Downloads.DISPLAY_NAME, backupName)
+                    }
+                    val renamed = runCatching {
+                        resolver.update(ContentUris.withAppendedId(collection, id), rename, null, null) == 1
+                    }.getOrDefault(false)
+                    if (!renamed) {
+                        restorePreviousRows()
+                        return false
+                    }
+                    stagedPreviousIds.add(id)
+                }
+            }
+
             val values = ContentValues().apply {
                 put(MediaStore.Downloads.DISPLAY_NAME, fileName)
                 put(MediaStore.Downloads.MIME_TYPE, mime)
                 put(MediaStore.Downloads.RELATIVE_PATH, relativePath)
                 put(MediaStore.Downloads.IS_PENDING, 1)
             }
-            val uri = resolver.insert(collection, values) ?: return false
+            val uri = runCatching { resolver.insert(collection, values) }.getOrNull()
+            if (uri == null) {
+                restorePreviousRows()
+                return false
+            }
             val published = runCatching {
                 val output = resolver.openOutputStream(uri) ?: error("Unable to open Downloads output")
                 output.use { it.write(bytes) }
@@ -77,7 +115,8 @@ object FileStore {
             }.isSuccess
 
             if (!published) {
-                resolver.delete(uri, null, null)
+                runCatching { resolver.delete(uri, null, null) }
+                restorePreviousRows()
                 return false
             }
 
@@ -89,7 +128,8 @@ object FileStore {
             }.getOrDefault(false)
 
             if (!renamed) {
-                // Keep the published file and all previous exports.
+                // Keep the published file and restore the previous export names.
+                restorePreviousRows()
                 return false
             }
 
@@ -106,8 +146,8 @@ object FileStore {
             }.getOrNull()
 
             if (effectiveName != fileName) {
-                // MediaStore may have assigned a collision-safe filename.
                 // Preserve older exports because the requested name was not obtained.
+                restorePreviousRows()
                 return false
             }
 
