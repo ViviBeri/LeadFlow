@@ -61,7 +61,7 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                 onValueChange = { category = it },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Business category") },
-                placeholder = { Text("Hotel, resort, guest house (or bakery, café)") },
+                placeholder = { Text("Hotel, theatre, bakery, café…") },
                 singleLine = true
             )
             OutlinedTextField(
