@@ -8,10 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -51,161 +50,186 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
     var sortMode by remember { mutableStateOf("Name") }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
+
+    val visibleResults = results
+        .filter {
+            resultFilter.isBlank() ||
+                it.name.contains(resultFilter, ignoreCase = true) ||
+                it.address.contains(resultFilter, ignoreCase = true) ||
+                it.category.contains(resultFilter, ignoreCase = true)
+        }
+        .let { list ->
+            when (sortMode) {
+                "Category" -> list.sortedWith(compareBy<PlaceResult> { it.category }.thenBy { it.name })
+                "Distance" -> list.sortedBy { if (it.distanceMeters < 0) Int.MAX_VALUE else it.distanceMeters }
+                else -> list.sortedBy { it.name }
+            }
+        }
 
     LfScaffold(title = "Discover Places", onBack = onBack) { padding ->
-        Column(
-            modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp).then(
-                if (error != null && results.isEmpty()) Modifier.verticalScroll(rememberScrollState()) else Modifier
-            ),
+        // Keep the search form and all results in one scroll container. A nested
+        // LazyColumn constrained by the remaining form height made the result
+        // cards scroll inside a small viewport on phones.
+        LazyColumn(
+            state = listState,
+            modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 12.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
-            Text("Find businesses by category and location", style = MaterialTheme.typography.titleLarge)
-            OutlinedTextField(
-                value = category,
-                onValueChange = { category = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Business category") },
-                placeholder = { Text("Restaurant, hotel, bakery…") },
-                singleLine = true
-            )
-            OutlinedTextField(
-                value = location,
-                onValueChange = { location = it },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("City or location") },
-                placeholder = { Text("Pondicherry, India") },
-                singleLine = true
-            )
-            OutlinedTextField(
-                value = radius,
-                onValueChange = { value ->
-                    val cleaned = value.filter { it.isDigit() || it == '.' }
-                    radius = if (cleaned.count { it == '.' } <= 1) cleaned.take(5) else radius
-                },
-                modifier = Modifier.fillMaxWidth(),
-                label = { Text("Search radius in kilometres (0.5–25)") },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                singleLine = true
-            )
-            Button(
-                onClick = {
-                    loading = true
-                    error = null
-                    searched = true
-                    results = emptyList()
-                    val selectedCategory = category.trim()
-                    val selectedLocation = location.trim()
-                    val selectedRadius = ((radius.toDoubleOrNull() ?: 5.0).coerceIn(0.5, 25.0) * 1000.0).roundToInt()
-                    scope.launch {
-                        try {
-                            results = withContext(Dispatchers.IO) {
-                                OpenPlaceSearch.search(selectedCategory, selectedLocation, selectedRadius)
-                            }
-                            if (results.isEmpty()) error = "No named places found. Try a broader category or nearby city."
-                        } catch (e: Exception) {
-                            error = if (e is IllegalStateException &&
-                                (e.message?.startsWith("No matching location found") == true ||
-                                    e.message?.startsWith("Location lookup returned incomplete coordinates") == true)
-                            ) {
-                                e.message
-                            } else {
-                                "OpenStreetMap is temporarily unavailable. Try again later or use Google Maps for this search."
-                            }
-                        } finally {
-                            loading = false
-                        }
-                    }
-                },
-                enabled = !loading && category.isNotBlank() && location.isNotBlank(),
-                modifier = Modifier.fillMaxWidth()
-            ) { Text(if (loading) "Searching…" else "Find Places") }
-
-            Text(
-                "Place names and locations come from OpenStreetMap. Google ratings and review text are not available from this data source.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Text(
-                "© OpenStreetMap contributors · Data available under the Open Database License (ODbL).",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            OutlinedButton(
-                onClick = {
-                    context.startActivity(
-                        Intent(
-                            Intent.ACTION_VIEW,
-                            Uri.parse("https://www.openstreetmap.org/copyright")
-                        )
-                    )
-                }
-            ) { Text("View data attribution") }
-
-            if (loading) {
-                CircularProgressIndicator()
-                Text("Looking up the location and nearby listings…")
+            item {
+                Text("Find businesses by category and location", style = MaterialTheme.typography.titleLarge)
             }
-            error?.let {
-                Text(it, color = MaterialTheme.colorScheme.error)
+            item {
+                OutlinedTextField(
+                    value = category,
+                    onValueChange = { category = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Business category") },
+                    placeholder = { Text("Restaurant, hotel, bakery…") },
+                    singleLine = true
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = location,
+                    onValueChange = { location = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("City or location") },
+                    placeholder = { Text("Pondicherry, India") },
+                    singleLine = true
+                )
+            }
+            item {
+                OutlinedTextField(
+                    value = radius,
+                    onValueChange = { value ->
+                        val cleaned = value.filter { it.isDigit() || it == '.' }
+                        radius = if (cleaned.count { it == '.' } <= 1) cleaned.take(5) else radius
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text("Search radius in kilometres (0.5–25)") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    singleLine = true
+                )
+            }
+            item {
+                Button(
+                    onClick = {
+                        loading = true
+                        error = null
+                        searched = true
+                        results = emptyList()
+                        val selectedCategory = category.trim()
+                        val selectedLocation = location.trim()
+                        val selectedRadius = ((radius.toDoubleOrNull() ?: 5.0).coerceIn(0.5, 25.0) * 1000.0).roundToInt()
+                        scope.launch {
+                            try {
+                                results = withContext(Dispatchers.IO) {
+                                    OpenPlaceSearch.search(selectedCategory, selectedLocation, selectedRadius)
+                                }
+                                if (results.isEmpty()) error = "No named places found. Try a broader category or nearby city."
+                            } catch (e: Exception) {
+                                error = if (e is IllegalStateException &&
+                                    (e.message?.startsWith("No matching location found") == true ||
+                                        e.message?.startsWith("Location lookup returned incomplete coordinates") == true)
+                                ) {
+                                    e.message
+                                } else {
+                                    "OpenStreetMap is temporarily unavailable. Try again later or use Google Maps for this search."
+                                }
+                            } finally {
+                                loading = false
+                            }
+                        }
+                    },
+                    enabled = !loading && category.isNotBlank() && location.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text(if (loading) "Searching…" else "Find Places") }
+            }
+            item {
+                Text(
+                    "Place names and locations come from OpenStreetMap. Google ratings and review text are not available from this data source.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            item {
+                Text(
+                    "© OpenStreetMap contributors · Data available under the Open Database License (ODbL).",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            item {
                 OutlinedButton(
                     onClick = {
-                        val query = Uri.encode("$category in $location")
                         context.startActivity(
                             Intent(
                                 Intent.ACTION_VIEW,
-                                Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
+                                Uri.parse("https://www.openstreetmap.org/copyright")
                             )
                         )
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Search in Google Maps") }
+                    }
+                ) { Text("View data attribution") }
+            }
+            if (loading) {
+                item {
+                    CircularProgressIndicator()
+                    Text("Looking up the location and nearby listings…")
+                }
+            }
+            error?.let { message ->
+                item {
+                    Text(message, color = MaterialTheme.colorScheme.error)
+                    OutlinedButton(
+                        onClick = {
+                            val query = Uri.encode("$category in $location")
+                            context.startActivity(
+                                Intent(
+                                    Intent.ACTION_VIEW,
+                                    Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
+                                )
+                            )
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("Search in Google Maps") }
+                }
             }
             if (searched && !loading && results.isNotEmpty()) {
-                val visibleResults = results
-                    .filter {
-                        resultFilter.isBlank() ||
-                            it.name.contains(resultFilter, ignoreCase = true) ||
-                            it.address.contains(resultFilter, ignoreCase = true) ||
-                            it.category.contains(resultFilter, ignoreCase = true)
-                    }
-                    .let { list ->
-                        when (sortMode) {
-                            "Category" -> list.sortedWith(compareBy<PlaceResult> { it.category }.thenBy { it.name })
-                            "Distance" -> list.sortedBy { if (it.distanceMeters < 0) Int.MAX_VALUE else it.distanceMeters }
-                            else -> list.sortedBy { it.name }
-                        }
-                    }
-                Text("${visibleResults.size} of ${results.size} places", style = MaterialTheme.typography.titleMedium)
-                OutlinedTextField(
-                    value = resultFilter,
-                    onValueChange = { resultFilter = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Filter results by name, address or type") },
-                    singleLine = true
-                )
-                TextButton(onClick = {
-                    sortMode = when (sortMode) { "Name" -> "Category"; "Category" -> "Distance"; else -> "Name" }
-                }) { Text("Sort: $sortMode (tap to change)") }
-                if (results.size >= OpenPlaceSearch.MAX_RESULTS) {
-                    Text(
-                        "Showing the first ${OpenPlaceSearch.MAX_RESULTS} places. Reduce the radius or use a more specific category to see others.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                item {
+                    Text("${visibleResults.size} of ${results.size} places", style = MaterialTheme.typography.titleMedium)
+                }
+                item {
+                    OutlinedTextField(
+                        value = resultFilter,
+                        onValueChange = { resultFilter = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Filter results by name, address or type") },
+                        singleLine = true
                     )
                 }
-                if (visibleResults.isEmpty()) {
-                    Text("No matching places. Try a different filter.")
+                item {
+                    TextButton(onClick = {
+                        sortMode = when (sortMode) { "Name" -> "Category"; "Category" -> "Distance"; else -> "Name" }
+                    }) { Text("Sort: $sortMode (tap to change)") }
                 }
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    items(visibleResults, key = { "${it.name}|${it.latitude}|${it.longitude}" }) { place ->
-                        PlaceCard(place = place, onOpen = {
-                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(place.mapUrl)))
-                        }, onSave = { onSave(place) })
+                if (results.size >= OpenPlaceSearch.MAX_RESULTS) {
+                    item {
+                        Text(
+                            "Showing the first ${OpenPlaceSearch.MAX_RESULTS} places. Reduce the radius or use a more specific category to see others.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
+                }
+                if (visibleResults.isEmpty()) {
+                    item { Text("No matching places. Try a different filter.") }
+                }
+                items(visibleResults, key = { "${it.name}|${it.latitude}|${it.longitude}" }) { place ->
+                    PlaceCard(place = place, onOpen = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(place.mapUrl)))
+                    }, onSave = { onSave(place) })
                 }
             }
         }
