@@ -78,10 +78,40 @@ object Exporter {
     }
 
     // ---------------------------------------------------------------- PDF
-    private fun fit(p: Paint, s: String, width: Float): String {
-        val clean = s.replace("\n", " ")
-        val n = p.breakText(clean, true, width, null)
-        return if (n < clean.length) clean.take(maxOf(0, n - 1)) + "…" else clean
+    private fun wrap(p: Paint, value: String, width: Float): List<String> {
+        val result = mutableListOf<String>()
+        value.replace("\r\n", "\n").replace('\r', '\n').split('\n').forEach { paragraph ->
+            val words = paragraph.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
+            if (words.isEmpty()) {
+                result.add("")
+            } else {
+                var line = StringBuilder()
+                words.forEach { word ->
+                    val candidate = if (line.isEmpty()) word else "$line $word"
+                    if (p.measureText(candidate) <= width) {
+                        line = StringBuilder(candidate)
+                    } else {
+                        if (line.isNotEmpty()) result.add(line.toString())
+                        line = StringBuilder()
+                        var offset = 0
+                        while (offset < word.length) {
+                            val count = p.breakText(word, offset, word.length, true, width, null)
+                                .coerceAtLeast(1)
+                                .coerceAtMost(word.length - offset)
+                            val chunk = word.substring(offset, offset + count)
+                            if (offset + count < word.length) {
+                                result.add(chunk)
+                            } else {
+                                line.append(chunk)
+                            }
+                            offset += count
+                        }
+                    }
+                }
+                if (line.isNotEmpty()) result.add(line.toString())
+            }
+        }
+        return result.ifEmpty { listOf("") }
     }
 
     fun toPdf(leads: List<Lead>): ByteArray {
@@ -116,18 +146,35 @@ object Exporter {
         }
 
         newPage()
-        leads.forEach { l ->
-            if (y > pageH - 40) newPage()
-            row(l).forEachIndexed { i, t ->
-                canvas!!.drawText(fit(body, t, colW[i] - 8f), colX[i], y, body)
+        leads.forEach { lead ->
+            val cells = row(lead).mapIndexed { index, value ->
+                wrap(body, value, colW[index] - 8f)
             }
-            y += 20f
+            val maxLines = cells.maxOfOrNull { it.size } ?: 1
+            var offset = 0
+            while (offset < maxLines) {
+                if (pageH - 32f - y < 13f) newPage()
+                val available = ((pageH - 32f - y) / 13f).toInt().coerceAtLeast(1)
+                val chunk = minOf(available, maxLines - offset)
+                cells.forEachIndexed { column, lines ->
+                    for (lineIndex in offset until minOf(offset + chunk, lines.size)) {
+                        canvas!!.drawText(lines[lineIndex], colX[column], y + (lineIndex - offset) * 13f, body)
+                    }
+                }
+                y += chunk * 13f + 8f
+                offset += chunk
+                canvas!!.drawLine(margin, y - 4f, pageW - margin, y - 4f, body)
+                if (offset < maxLines) newPage()
+            }
         }
         page?.let { doc.finishPage(it) }
 
         val out = ByteArrayOutputStream()
-        doc.writeTo(out)
-        doc.close()
-        return out.toByteArray()
+        try {
+            doc.writeTo(out)
+            return out.toByteArray()
+        } finally {
+            doc.close()
+        }
     }
 }
