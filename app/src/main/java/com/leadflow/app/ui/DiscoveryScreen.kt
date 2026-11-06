@@ -99,7 +99,7 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                             }
                             if (results.isEmpty()) error = "No named places found. Try a broader category or nearby city."
                         } catch (e: Exception) {
-                            error = e.message ?: "Search failed. Check your internet connection and try again."
+                            error = "OpenStreetMap is temporarily unavailable. Try again later or use Google Maps for this search."
                         } finally {
                             loading = false
                         }
@@ -135,7 +135,21 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                 CircularProgressIndicator()
                 Text("Looking up the location and nearby listings…")
             }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+                OutlinedButton(
+                    onClick = {
+                        val query = Uri.encode("$category in $location")
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Search in Google Maps") }
+            }
             if (searched && !loading && results.isNotEmpty()) {
                 val visibleResults = results
                     .filter {
