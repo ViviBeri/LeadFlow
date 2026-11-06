@@ -28,6 +28,7 @@ object OpenPlaceSearch {
     private const val GEOCODE_CACHE_MAX_ENTRIES = 100
     private const val NOMINATIM_MIN_INTERVAL_MS = 1100L
     private val geocodeLock = Any()
+    // Monotonic time avoids wall-clock changes affecting request pacing.
     private var lastGeocodeRequestAt = 0L
     private val geocodeCache = LinkedHashMap<String, Pair<Long, Pair<Double, Double>>>(16, 0.75f, true)
 
@@ -221,11 +222,13 @@ object OpenPlaceSearch {
             }
             if (cached != null) geocodeCache.remove(normalized)
 
-            val waitMs = NOMINATIM_MIN_INTERVAL_MS - (now - lastGeocodeRequestAt)
+            val monotonicNow = System.nanoTime() / 1_000_000L
+            val waitMs = (NOMINATIM_MIN_INTERVAL_MS - (monotonicNow - lastGeocodeRequestAt))
+                .coerceIn(0L, NOMINATIM_MIN_INTERVAL_MS)
             if (waitMs > 0) Thread.sleep(waitMs)
 
             // Record the request start even when the provider fails, so retries stay paced.
-            lastGeocodeRequestAt = System.currentTimeMillis()
+            lastGeocodeRequestAt = System.nanoTime() / 1_000_000L
             val encoded = URLEncoder.encode(location.trim(), Charsets.UTF_8.name())
             val results = JSONArray(requestText("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded"))
             val first = results.optJSONObject(0)
