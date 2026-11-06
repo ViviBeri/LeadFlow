@@ -6,6 +6,7 @@ import java.net.HttpURLConnection
 import java.net.URL
 import java.net.URLEncoder
 import java.io.IOException
+import java.util.LinkedHashMap
 
 data class PlaceResult(
     val name: String,
@@ -23,6 +24,13 @@ data class PlaceResult(
 
 object OpenPlaceSearch {
     private const val USER_AGENT = "LeadFlowAndroid/1.0"
+    private const val GEOCODE_CACHE_TTL_MS = 24 * 60 * 60 * 1000L
+    private const val GEOCODE_CACHE_MAX_ENTRIES = 100
+    private const val NOMINATIM_MIN_INTERVAL_MS = 1100L
+    private val geocodeLock = Any()
+    // Monotonic time avoids wall-clock changes affecting request pacing.
+    private var lastGeocodeRequestAt = 0L
+    private val geocodeCache = LinkedHashMap<String, Pair<Long, Pair<Double, Double>>>(16, 0.75f, true)
 
     /** Hard cap so a wide radius cannot flood the public Overpass servers or the phone. */
     const val MAX_RESULTS = 300
@@ -200,15 +208,43 @@ object OpenPlaceSearch {
         }
     }
 
+    /**
+     * Resolve a location while respecting Nominatim's public request rate limit.
+     * Successful coordinates are cached for 24 hours in a bounded LRU cache.
+     */
     private fun geocode(location: String): Pair<Double, Double> {
-        val encoded = URLEncoder.encode(location, Charsets.UTF_8.name())
-        val results = JSONArray(requestText("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded"))
-        val first = results.optJSONObject(0)
-            ?: throw IllegalStateException("No matching location found. Try a city or town name.")
-        if (!first.has("lat") || !first.has("lon")) {
-            throw IllegalStateException("Location lookup returned incomplete coordinates. Please try another location.")
+        val normalized = location.trim().replace(Regex("\\s+"), " ").lowercase()
+        synchronized(geocodeLock) {
+            val now = System.currentTimeMillis()
+            val cached = geocodeCache[normalized]
+            if (cached != null && now - cached.first < GEOCODE_CACHE_TTL_MS) {
+                return cached.second
+            }
+            if (cached != null) geocodeCache.remove(normalized)
+
+            val monotonicNow = System.nanoTime() / 1_000_000L
+            val waitMs = (NOMINATIM_MIN_INTERVAL_MS - (monotonicNow - lastGeocodeRequestAt))
+                .coerceIn(0L, NOMINATIM_MIN_INTERVAL_MS)
+            if (waitMs > 0) Thread.sleep(waitMs)
+
+            // Record the request start even when the provider fails, so retries stay paced.
+            lastGeocodeRequestAt = System.nanoTime() / 1_000_000L
+            val encoded = URLEncoder.encode(location.trim(), Charsets.UTF_8.name())
+            val results = JSONArray(requestText("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded"))
+            val first = results.optJSONObject(0)
+                ?: throw IllegalStateException("No matching location found. Try a city or town name.")
+            if (!first.has("lat") || !first.has("lon")) {
+                throw IllegalStateException("Location lookup returned incomplete coordinates. Please try another location.")
+            }
+
+            val coordinates = first.getDouble("lat") to first.getDouble("lon")
+            geocodeCache[normalized] = System.currentTimeMillis() to coordinates
+            while (geocodeCache.size > GEOCODE_CACHE_MAX_ENTRIES) {
+                val eldestKey = geocodeCache.keys.iterator().next()
+                geocodeCache.remove(eldestKey)
+            }
+            return coordinates
         }
-        return first.getDouble("lat") to first.getDouble("lon")
     }
 
     private fun requestText(address: String): String {
