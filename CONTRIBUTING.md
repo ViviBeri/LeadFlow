@@ -2,7 +2,7 @@
 
 Thank you for helping improve LeadFlow. Contributions of all sizes are welcome, including documentation, bug reports, accessibility improvements, UI fixes, tests and Android development.
 
-LeadFlow is an Android application built with Kotlin, Jetpack Compose, Room and OpenStreetMap services. The current discovery flow also provides an external Google Maps fallback; it does not import Google Maps results into the app.
+LeadFlow is an Android application built with Kotlin, Jetpack Compose, Room and OpenStreetMap services. Place discovery currently uses OpenStreetMap Nominatim and Overpass; the app can open a place in Google Maps, but it does not import Google Maps results.
 
 ## Choose a contribution
 
@@ -25,24 +25,91 @@ If you are new to Kotlin or Android, start with documentation, reproducible bug 
 
 ## Development setup
 
-1. Fork this repository.
-2. Clone your fork.
-3. Open the project in Android Studio.
-4. Use JDK 17 and the Gradle 8.2 wrapper.
-5. Allow Gradle to sync and download dependencies.
-6. Run the unit tests and build the debug APK:
+### Requirements
+
+| Tool | Version / requirement |
+|---|---|
+| Android Studio | A current stable release |
+| JDK | 17 |
+| Gradle | 8.2 |
+| Android SDK | Platform 34 and the matching build tools |
+| Android device/emulator | API 24 or newer for runtime checks |
+
+The project uses Android Gradle Plugin 8.2.2, Kotlin 1.9.22, KSP 1.9.22-1.0.17 and Compose compiler extension 1.5.8. The app's `minSdk` is 24 and `targetSdk` is 34.
+
+**Important:** this repository currently contains `gradle/wrapper/gradle-wrapper.properties`, but does not contain the Gradle wrapper scripts or wrapper JAR. Do not use `./gradlew` or `gradlew.bat` until a complete wrapper is committed. Install Gradle 8.2 and use the `gradle` command below.
+
+### Get the source
+
+1. Fork the repository on GitHub.
+2. Clone your fork and enter the project directory:
 
 ```bash
-./gradlew testDebugUnitTest assembleDebug
+git clone https://github.com/<your-github-username>/LeadFlow.git
+cd LeadFlow
+git remote add upstream https://github.com/ViviBeri/LeadFlow.git
 ```
 
-On Windows PowerShell:
+3. Open the project folder in Android Studio.
+4. Set the Gradle JDK to JDK 17 in **Settings > Build, Execution, Deployment > Build Tools > Gradle**.
+5. Install Android SDK Platform 34 and its build tools through **Tools > SDK Manager**.
+6. Allow Android Studio to sync the project and download dependencies.
 
-```powershell
-.\\gradlew.bat testDebugUnitTest assembleDebug
+If Android Studio reports a missing SDK package, install the exact platform/build-tools version it requests through SDK Manager. Do not commit local SDK paths or machine-specific settings.
+
+### Verify your environment
+
+Run these commands from the repository root:
+
+```bash
+java -version
+gradle --version
 ```
 
-A successful build verifies compilation and packaging; it does not replace testing network behavior on a physical Android device.
+Confirm Java reports version 17 and Gradle reports version 8.2. If your system has multiple Java installations, set `JAVA_HOME` to the JDK 17 installation before running Gradle.
+
+## Build and test
+
+Run the same core checks used by the repository's GitHub Actions build:
+
+```bash
+gradle testDebugUnitTest assembleDebug --stacktrace
+```
+
+Run the checks separately when debugging:
+
+```bash
+# Run local JVM unit tests
+gradle :app:testDebugUnitTest
+
+# Build the debug APK
+gradle :app:assembleDebug
+
+# Run Android lint checks
+gradle :app:lintDebug
+
+# Generate the third-party dependency licence report
+gradle :app:generateLicenseReport
+```
+
+Current local JVM tests are under `app/src/test/java/com/leadflow/app/`, including:
+- `OpenPlaceSearchTest.kt` — place parsing and search-related behavior.
+- `PhoneFormatTest.kt` — phone number normalization.
+
+Useful output locations:
+
+- Unit test HTML report: `app/build/reports/tests/testDebugUnitTest/index.html`
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
+- Lint report, when generated: `app/build/reports/lint-results-debug.html`
+- Dependency licence report: `app/build/reports/dependency-license/`
+
+A successful unit-test task means the local JVM tests passed. A successful APK build verifies compilation and packaging; neither proves that live Nominatim/Overpass requests, location permissions, exports or device-specific behavior work correctly. For changes affecting those flows, test on an Android emulator or physical device and include the device/API level and steps in your pull request.
+
+### GitHub Actions
+
+Pull requests targeting `main` run the **Build APK** workflow. It uses Temurin JDK 17 and Gradle 8.2, runs unit tests and builds the debug APK, then generates a dependency licence report. The workflow uploads the debug APK and licence report as downloadable artifacts.
+
+To inspect a run, open the repository's **Actions** tab, select **Build APK**, and open the run for your commit. If a check fails, include the failing task and relevant log excerpt in your pull request discussion.
 
 ## AI-assisted development
 
@@ -68,7 +135,7 @@ You do not need to disclose routine AI assistance. If a maintainer asks how a co
 - Link the related issue using `Closes #123` when appropriate.
 - Include clear verification steps and screenshots for visible UI changes.
 - Add or update tests where practical.
-- Run the relevant Gradle checks before submitting.
+- Run the relevant Gradle checks before submitting; state clearly if a check could not be run.
 - Do not include API keys, passwords, personal data or generated build files.
 - Use your own GitHub account and ensure commit authorship accurately reflects who performed the work.
 - Be respectful in reviews and be open to requested changes.

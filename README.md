@@ -181,14 +181,65 @@ Read [Build Log 01: Turning Local Business Discovery into an Android Lead Workfl
 - [ ] Show recent review dates, supporting evidence and uncertainty
 - [ ] Test discovery, ranking and export workflows end-to-end on Android
 
-## Build the Android app
+## Build and test the Android app
 
-1. Install Android Studio with JDK 17.
-2. Open the repository and allow Gradle to sync.
-3. Select **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
-4. Locate the debug APK, normally at `app/build/outputs/apk/debug/app-debug.apk`.
+### Requirements
 
-To install on an Android device, open the APK from the phone's file manager and approve installation from that source if prompted. Alternatively, use `adb install app-debug.apk` with USB debugging enabled.
+- Android Studio (current stable release)
+- JDK 17
+- Gradle 8.2
+- Android SDK Platform 34 and matching build tools
+- Android 7.0 (API 24) or newer for device/emulator testing
+
+The project uses Android Gradle Plugin 8.2.2, Kotlin 1.9.22 and Compose compiler extension 1.5.8.
+
+**Gradle wrapper note:** the repository currently has the wrapper properties file but does not include `gradlew`, `gradlew.bat` or the wrapper JAR. Install Gradle 8.2 and use the system `gradle` command; wrapper commands will not work until the complete wrapper is added.
+
+### Open and build
+
+1. Install JDK 17 and Android Studio.
+2. Install Android SDK Platform 34 from **Tools > SDK Manager**.
+3. Open the repository in Android Studio.
+4. Set the Gradle JDK to JDK 17 in the Gradle settings.
+5. Install Gradle 8.2 and confirm it is available on your PATH.
+6. From the repository root, run:
+
+```bash
+gradle testDebugUnitTest assembleDebug --stacktrace
+```
+
+Or use Android Studio's **Build > Build Bundle(s) / APK(s) > Build APK(s)** to build without running the unit-test task.
+
+### Run tests and optional checks
+
+```bash
+# JVM unit tests
+gradle :app:testDebugUnitTest
+
+# Debug APK
+gradle :app:assembleDebug
+
+# Android lint
+gradle :app:lintDebug
+
+# Third-party dependency licence report
+gradle :app:generateLicenseReport
+```
+
+The current JVM tests are in `app/src/test/java/com/leadflow/app/`: `OpenPlaceSearchTest.kt` and `PhoneFormatTest.kt`.
+
+### Output and CI
+
+- Unit test report: `app/build/reports/tests/testDebugUnitTest/index.html`
+- Debug APK: `app/build/outputs/apk/debug/app-debug.apk`
+- Lint report: `app/build/reports/lint-results-debug.html`
+- Dependency licence report: `app/build/reports/dependency-license/`
+
+The **Build APK** GitHub Actions workflow uses JDK 17 and Gradle 8.2, runs unit tests, builds the debug APK and generates the dependency licence report. Open the repository's **Actions** tab to inspect a run; successful runs upload the APK and licence report as artifacts.
+
+To install the APK on an Android device, open it from the phone's file manager and approve installation from that source if prompted. Alternatively, use `adb install app-debug.apk` with USB debugging enabled.
+
+A passing unit-test task verifies the local JVM tests. A successful APK build verifies compilation and packaging, not live network behavior or device-specific flows. Test changes to location, discovery, permissions, saving and exports on an emulator or physical device where applicable. See [CONTRIBUTING.md](CONTRIBUTING.md) for the complete contributor setup, testing and pull request guide.
 
 ## Project structure
 
