@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
@@ -52,7 +54,9 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
 
     LfScaffold(title = "Discover Places", onBack = onBack) { padding ->
         Column(
-            modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(padding).fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp).then(
+                if (error != null && results.isEmpty()) Modifier.verticalScroll(rememberScrollState()) else Modifier
+            ),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text("Find businesses by category and location", style = MaterialTheme.typography.titleLarge)
@@ -99,7 +103,14 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                             }
                             if (results.isEmpty()) error = "No named places found. Try a broader category or nearby city."
                         } catch (e: Exception) {
-                            error = e.message ?: "Search failed. Check your internet connection and try again."
+                            error = if (e is IllegalStateException &&
+                                (e.message?.startsWith("No matching location found") == true ||
+                                    e.message?.startsWith("Location lookup returned incomplete coordinates") == true)
+                            ) {
+                                e.message
+                            } else {
+                                "OpenStreetMap is temporarily unavailable. Try again later or use Google Maps for this search."
+                            }
                         } finally {
                             loading = false
                         }
@@ -135,7 +146,21 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                 CircularProgressIndicator()
                 Text("Looking up the location and nearby listings…")
             }
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            error?.let {
+                Text(it, color = MaterialTheme.colorScheme.error)
+                OutlinedButton(
+                    onClick = {
+                        val query = Uri.encode("$category in $location")
+                        context.startActivity(
+                            Intent(
+                                Intent.ACTION_VIEW,
+                                Uri.parse("https://www.google.com/maps/search/?api=1&query=$query")
+                            )
+                        )
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Search in Google Maps") }
+            }
             if (searched && !loading && results.isNotEmpty()) {
                 val visibleResults = results
                     .filter {

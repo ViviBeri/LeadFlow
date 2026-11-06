@@ -122,10 +122,12 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Normalize discovered Indian phone numbers to valid 10-digit mobile numbers before saving; retain listed landlines in lead notes
 - View available address, phone number and website details
 - Open a discovered place in Google Maps
+- When OpenStreetMap discovery is unavailable, show a concise service-unavailable message and offer a Google Maps search using the same category and location; this opens Maps externally and does not import its results into LeadFlow
 - Save a discovered place into the local lead database
 - Check for an existing lead with the same normalized business name and address before saving
 - Show save feedback for new and duplicate leads
 - Display OpenStreetMap attribution and a link to its copyright page
+- Provide an external Google Maps search fallback when OpenStreetMap discovery requests fail
 - Local lead search and management with pipeline statuses (New, Contacted, Interested, Converted, Not Interested)
 - Set, change or clear a follow-up date for each saved lead
 - Edit and review notes on saved leads
@@ -141,7 +143,7 @@ LeadFlow now includes an initial working place-discovery flow alongside its loca
 - Follow-up dashboard summaries for overdue, due-today and upcoming active leads, with tap-to-filter cards
 - Existing export utilities and WhatsApp click-to-open support
 
-**Data-source limitations:** The current discovery implementation uses OpenStreetMap listings. It does not provide Google ratings, review counts, customer review text, opening hours in the current result model, or verified business rankings. The result filter searches already-fetched listings; it is not a Google review/rating filter. Nominatim and Overpass are community services with usage policies and availability limits, so requests should be paced and a production deployment should assess service policies and a suitable hosted data provider. A successful CI build confirms compilation and APK packaging, not end-to-end network behavior on a physical phone.
+**Data-source limitations:** The current discovery implementation uses OpenStreetMap listings. It does not provide Google ratings, review counts, customer review text, opening hours in the current result model, or verified business rankings. The result filter searches already-fetched listings; it is not a Google review/rating filter. Nominatim and Overpass are community services with usage policies and availability limits, so requests should be paced and a production deployment should assess service policies and a suitable hosted data provider. If Overpass is unavailable, the app offers a Google Maps search link for the same category and location; this is an external fallback only, and Google Maps results are not imported or saved as LeadFlow leads. A successful CI build confirms compilation and APK packaging, not end-to-end network behavior on a physical phone.
 
 ## Build log
 
