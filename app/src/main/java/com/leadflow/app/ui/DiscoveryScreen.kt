@@ -108,7 +108,7 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                         radius = if (cleaned.count { it == '.' } <= 1) cleaned.take(5) else radius
                     },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Search radius in kilometres (0.5–25)") },
+                    label = { Text("Search radius in kilometres (0.5–50)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true
                 )
@@ -122,7 +122,7 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                         results = emptyList()
                         val selectedCategory = category.trim()
                         val selectedLocation = location.trim()
-                        val selectedRadius = ((radius.toDoubleOrNull() ?: 5.0).coerceIn(0.5, 25.0) * 1000.0).roundToInt()
+                        val selectedRadius = ((radius.toDoubleOrNull() ?: 5.0).coerceIn(0.5, 50.0) * 1000.0).roundToInt()
                         scope.launch {
                             try {
                                 results = withContext(Dispatchers.IO) {
