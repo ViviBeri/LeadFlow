@@ -98,7 +98,7 @@ fun ExportScreen(vm: LeadViewModel, onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             Text(
-                "Columns: Business Name, Address, Phone, Notes, Date Added",
+                "Columns: Business Name, Address, Phone, Email, Website, Notes, Date Added",
                 style = MaterialTheme.typography.bodyMedium
             )
             Button(
