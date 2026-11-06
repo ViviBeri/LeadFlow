@@ -44,6 +44,23 @@ On Windows PowerShell:
 
 A successful build verifies compilation and packaging; it does not replace testing network behavior on a physical Android device.
 
+## AI-assisted development
+
+AI coding assistants are permitted. You may use tools such as ChatGPT, GitHub Copilot or Claude for research, explanations, debugging, test ideas, documentation and code suggestions. AI use is neither required nor a reason to reject a contribution.
+
+The contributor remains responsible for every submitted change:
+
+- Understand the code you submit and be able to explain its purpose and behavior.
+- Review generated suggestions instead of accepting them blindly.
+- Verify that APIs, dependencies, licenses and technical claims are appropriate for this project.
+- Run relevant tests and describe what you actually verified.
+- Check for security issues, exposed secrets, personal data and unrelated changes.
+- Respond to review feedback and make corrections when needed.
+
+Do not submit large, unreviewed generated changes or claim that tests passed when they were not run. Do not use AI tools to fabricate test results, commit history, authorship or contribution activity. Never paste credentials, private keys, personal data or other secrets into an AI service.
+
+You do not need to disclose routine AI assistance. If a maintainer asks how a complex change was produced, explain the assistance used and, more importantly, demonstrate that you understand and take responsibility for the implementation.
+
 ## Pull request guidelines
 
 - Keep each pull request focused on one issue or improvement.
