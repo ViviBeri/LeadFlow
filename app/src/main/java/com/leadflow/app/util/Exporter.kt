@@ -22,7 +22,12 @@ object Exporter {
 
     // ---------------------------------------------------------------- CSV
     fun toCsv(leads: List<Lead>): ByteArray {
-        fun q(s: String) = "\"" + s.replace("\"", "\"\"") + "\""
+        // Prevent spreadsheet applications from evaluating exported text as formulas.
+        fun safeCell(value: String): String {
+            val first = value.firstOrNull { !it.isWhitespace() && it != '\u0000' }
+            return if (first == '=' || first == '+' || first == '-' || first == '@') "'$value" else value
+        }
+        fun q(s: String) = "\"" + safeCell(s).replace("\"", "\"\"") + "\""
         val sb = StringBuilder("\uFEFF") // BOM so Excel reads Tamil/Unicode correctly
         sb.append(HEADERS.joinToString(",") { q(it) }).append("\r\n")
         leads.forEach { l -> sb.append(row(l).joinToString(",") { q(it) }).append("\r\n") }
