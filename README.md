@@ -223,9 +223,16 @@ LeadFlow is intended for useful discovery and informed decisions, not automated 
 
 ## Contributing
 
-See **[CONTRIBUTING.md](CONTRIBUTING.md)** for development setup, a first-contribution task, testing commands and pull request guidelines.
+**Want to help build LeadFlow? New contributors are welcome.** You do not need to be an Android expert to make a useful contribution. Documentation, accessibility, UI polish, reproducible bug reports and focused tests are valuable starting points.
 
-Suggestions and contributions are welcome, especially around Android usability, search/filter design, fair ranking, permitted data-source integration, review analysis, duplicate detection and reliable exports. Features should be tested and documented before being marked complete.
+1. Browse the repository's open issues and look for the `good first issue` label.
+2. Comment on an issue before starting so the work can be coordinated.
+3. Read **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, testing and pull request expectations.
+4. Submit a focused pull request and describe how you verified the change.
+
+Contributors are credited through their own GitHub commits and accepted pull requests. You can build a public contribution history and portfolio; GitHub controls its profile contribution counts and achievements, so no badge or achievement is guaranteed.
+
+Suggestions and contributions are especially welcome around Android usability, search/filter design, accessibility, search reliability, tests, permitted data-source integration, duplicate detection and reliable exports. Features should be tested and documented before being marked complete.
 
 ### Lead performance reports
 - Filter lead creation reports by Today, last 7 days, last 30 days, All time, or a custom date range.
