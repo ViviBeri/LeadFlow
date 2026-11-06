@@ -224,6 +224,8 @@ object OpenPlaceSearch {
             val waitMs = NOMINATIM_MIN_INTERVAL_MS - (now - lastGeocodeRequestAt)
             if (waitMs > 0) Thread.sleep(waitMs)
 
+            // Record the request start even when the provider fails, so retries stay paced.
+            lastGeocodeRequestAt = System.currentTimeMillis()
             val encoded = URLEncoder.encode(location.trim(), Charsets.UTF_8.name())
             val results = JSONArray(requestText("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&q=$encoded"))
             val first = results.optJSONObject(0)
@@ -233,8 +235,7 @@ object OpenPlaceSearch {
             }
 
             val coordinates = first.getDouble("lat") to first.getDouble("lon")
-            lastGeocodeRequestAt = System.currentTimeMillis()
-            geocodeCache[normalized] = lastGeocodeRequestAt to coordinates
+            geocodeCache[normalized] = System.currentTimeMillis() to coordinates
             while (geocodeCache.size > GEOCODE_CACHE_MAX_ENTRIES) {
                 val eldestKey = geocodeCache.keys.iterator().next()
                 geocodeCache.remove(eldestKey)
