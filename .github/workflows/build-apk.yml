@@ -22,12 +22,12 @@ jobs:
       - name: Generate third-party dependency license report
         run: gradle :app:generateLicenseReport --stacktrace
       - name: Upload dependency license report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: LeadFlow-third-party-license-report
           path: app/build/reports/dependency-license/**
           if-no-files-found: error
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: LeadFlow-debug-apk
           path: app/build/outputs/apk/debug/app-debug.apk
