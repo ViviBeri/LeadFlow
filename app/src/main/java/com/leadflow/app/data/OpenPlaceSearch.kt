@@ -3,6 +3,7 @@ package com.leadflow.app.data
 import org.json.JSONArray
 import org.json.JSONObject
 import java.net.HttpURLConnection
+import java.net.SocketTimeoutException
 import java.net.URL
 import java.net.URLEncoder
 import java.io.IOException
@@ -259,10 +260,35 @@ object OpenPlaceSearch {
             val status = connection.responseCode
             val stream = if (status in 200..299) connection.inputStream else connection.errorStream
             val body = stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }.orEmpty()
-            if (status !in 200..299) throw IllegalStateException("Place search service returned HTTP $status. Please try again later.")
-            return body
+            return validatePlaceSearchResponse(status, body)
+        } catch (exception: SocketTimeoutException) {
+            throw placeSearchNetworkFailure(exception)
+        } catch (exception: IOException) {
+            throw placeSearchNetworkFailure(exception)
         } finally {
             connection.disconnect()
         }
     }
+}
+
+
+/** Validates an HTTP response without depending on Android framework classes. */
+internal fun validatePlaceSearchResponse(statusCode: Int, body: String): String {
+    if (statusCode !in 200..299) {
+        throw IllegalStateException("Place search service returned HTTP $statusCode. Please try again later.")
+    }
+    if (body.isBlank()) {
+        throw IllegalStateException("Place search service returned an empty response. Please try again.")
+    }
+    return body
+}
+
+/** Converts transport failures into actionable messages suitable for the UI. */
+internal fun placeSearchNetworkFailure(exception: IOException): IllegalStateException {
+    val message = if (exception is SocketTimeoutException) {
+        "Place search timed out. Check your connection and try again."
+    } else {
+        "Unable to reach the place search service. Check your internet connection and try again."
+    }
+    return IllegalStateException(message, exception)
 }
