@@ -26,6 +26,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
@@ -240,7 +243,7 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
 private fun PlaceCard(place: PlaceResult, onOpen: () -> Unit, onSave: () -> Unit) {
     Card(modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(place.name, style = MaterialTheme.typography.titleMedium)
+            Text(place.name, modifier = Modifier.semantics { heading() }, style = MaterialTheme.typography.titleMedium)
             Text(place.category.replaceFirstChar { it.uppercase() }, style = MaterialTheme.typography.labelMedium)
             Text(place.address, style = MaterialTheme.typography.bodyMedium)
             if (place.distanceMeters >= 0) {
@@ -250,8 +253,14 @@ private fun PlaceCard(place: PlaceResult, onOpen: () -> Unit, onSave: () -> Unit
             if (place.phone.isNotBlank()) Text("Phone: ${place.phone}")
             if (place.website.isNotBlank()) Text("Website: ${place.website}")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedButton(onClick = onOpen) { Text("Open in Maps") }
-                Button(onClick = onSave) { Text("Save lead") }
+                OutlinedButton(
+                    onClick = onOpen,
+                    modifier = Modifier.semantics { contentDescription = "Open ${place.name} in Google Maps" }
+                ) { Text("Open in Maps") }
+                Button(
+                    onClick = onSave,
+                    modifier = Modifier.semantics { contentDescription = "Save ${place.name} as a lead" }
+                ) { Text("Save lead") }
             }
         }
     }
