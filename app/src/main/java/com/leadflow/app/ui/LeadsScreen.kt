@@ -218,16 +218,28 @@ fun LeadsScreen(vm: LeadViewModel, onBack: () -> Unit) {
                     }
                 }
             }
-            if (leads.isEmpty() || visibleLeads.isEmpty()) {
+            if (allLeads.isEmpty() || leads.isEmpty() || visibleLeads.isEmpty()) {
                 Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text(when {
-                        leads.isEmpty() -> if (query.isBlank()) "No leads yet" else "No matches"
-                        followUpFilter != "All" -> "No $followUpFilter follow-ups match"
-                        statusFilter != "All" -> "No $statusFilter leads match"
-                        contactFilter != "All" -> "No leads match contact filter: $contactFilter"
-                        priorityFilter != "All" -> "No $priorityFilter priority leads match"
-                        else -> "No matching leads"
-                    })
+                    Text(
+                        when {
+                            allLeads.isEmpty() ->
+                                "No leads yet. Add a lead from Home or Discover Places."
+                            leads.isEmpty() ->
+                                "No leads match \"$query\". Try another search term or clear the search."
+                            followUpFilter != "All" ->
+                                "No $followUpFilter follow-ups match. Clear the follow-up filter to see all leads."
+                            statusFilter != "All" ->
+                                "No $statusFilter leads match. Change or clear the status filter."
+                            contactFilter != "All" ->
+                                "No leads match the $contactFilter contact filter. Change or clear the contact filter."
+                            priorityFilter != "All" ->
+                                "No $priorityFilter priority leads match. Change or clear the priority filter."
+                            else ->
+                                "No leads match the selected filters. Use Clear all to see every lead."
+                        },
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             } else {
                 LazyColumn(
