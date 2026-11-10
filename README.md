@@ -189,13 +189,13 @@ Read [Build Log 01: Turning Local Business Discovery into an Android Lead Workfl
 
 - Android Studio (current stable release)
 - JDK 17
-- Gradle 8.2
+- Gradle 8.13
 - Android SDK Platform 34 and matching build tools
 - Android 7.0 (API 24) or newer for device/emulator testing
 
-The project uses Android Gradle Plugin 8.2.2, Kotlin 1.9.22 and Compose compiler extension 1.5.8.
+The project uses Android Gradle Plugin 8.13.2, Kotlin 2.3.21, the Kotlin Compose compiler plugin 2.3.21 and KSP 2.3.13. Room runtime, KTX and compiler use version 2.8.5.
 
-**Gradle wrapper note:** the repository currently has the wrapper properties file but does not include `gradlew`, `gradlew.bat` or the wrapper JAR. Install Gradle 8.2 and use the system `gradle` command; wrapper commands will not work until the complete wrapper is added.
+**Gradle wrapper note:** the repository currently has the wrapper properties file but does not include `gradlew`, `gradlew.bat` or the wrapper JAR. Install Gradle 8.13 and use the system `gradle` command; wrapper commands will not work until the complete wrapper is added.
 
 ### Open and build
 
@@ -203,7 +203,7 @@ The project uses Android Gradle Plugin 8.2.2, Kotlin 1.9.22 and Compose compiler
 2. Install Android SDK Platform 34 from **Tools > SDK Manager**.
 3. Open the repository in Android Studio.
 4. Set the Gradle JDK to JDK 17 in the Gradle settings.
-5. Install Gradle 8.2 and confirm it is available on your PATH.
+5. Install Gradle 8.13 and confirm it is available on your PATH.
 6. From the repository root, run:
 
 ```bash
@@ -237,7 +237,7 @@ The current JVM tests are in `app/src/test/java/com/leadflow/app/`: `OpenPlaceSe
 - Lint report: `app/build/reports/lint-results-debug.html`
 - Dependency licence report: `app/build/reports/dependency-license/`
 
-The **Build APK** GitHub Actions workflow uses JDK 17 and Gradle 8.2, runs unit tests, builds the debug APK and generates the dependency licence report. Open the repository's **Actions** tab to inspect a run; successful runs upload the APK and licence report as artifacts.
+The **Build APK** GitHub Actions workflow uses JDK 17 and Gradle 8.13, runs unit tests, builds the debug APK and generates the dependency licence report. Open the repository's **Actions** tab to inspect a run; successful runs upload the APK and licence report as artifacts.
 
 To install the APK on an Android device, open it from the phone's file manager and approve installation from that source if prompted. Alternatively, use `adb install app-debug.apk` with USB debugging enabled.
 
