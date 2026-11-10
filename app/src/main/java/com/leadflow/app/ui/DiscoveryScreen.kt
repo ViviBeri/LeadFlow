@@ -132,7 +132,8 @@ fun DiscoveryScreen(onBack: () -> Unit, onSave: (PlaceResult) -> Unit) {
                             } catch (e: Exception) {
                                 error = if (e is IllegalStateException &&
                                     (e.message?.startsWith("No matching location found") == true ||
-                                        e.message?.startsWith("Location lookup returned incomplete coordinates") == true)
+                                        e.message?.startsWith("Location lookup returned incomplete coordinates") == true ||
+                                        e.cause is java.io.IOException)
                                 ) {
                                     e.message
                                 } else {
