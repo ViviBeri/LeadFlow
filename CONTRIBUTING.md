@@ -31,13 +31,13 @@ If you are new to Kotlin or Android, start with documentation, reproducible bug 
 |---|---|
 | Android Studio | A current stable release |
 | JDK | 17 |
-| Gradle | 8.2 |
+| Gradle | 8.13 |
 | Android SDK | Platform 34 and the matching build tools |
 | Android device/emulator | API 24 or newer for runtime checks |
 
-The project uses Android Gradle Plugin 8.2.2, Kotlin 1.9.22, KSP 1.9.22-1.0.17 and Compose compiler extension 1.5.8. The app's `minSdk` is 24 and `targetSdk` is 34.
+The project uses Android Gradle Plugin 8.13.2, Kotlin 2.3.21, the Kotlin Compose compiler plugin 2.3.21 and KSP 2.3.13. Room runtime, KTX and compiler use version 2.8.5. The app's `minSdk` is 24 and `targetSdk` is 34.
 
-**Important:** this repository currently contains `gradle/wrapper/gradle-wrapper.properties`, but does not contain the Gradle wrapper scripts or wrapper JAR. Do not use `./gradlew` or `gradlew.bat` until a complete wrapper is committed. Install Gradle 8.2 and use the `gradle` command below.
+**Important:** this repository currently contains `gradle/wrapper/gradle-wrapper.properties`, but does not contain the Gradle wrapper scripts or wrapper JAR. Do not use `./gradlew` or `gradlew.bat` until a complete wrapper is committed. Install Gradle 8.13 and use the `gradle` command below.
 
 ### Get the source
 
@@ -66,7 +66,7 @@ java -version
 gradle --version
 ```
 
-Confirm Java reports version 17 and Gradle reports version 8.2. If your system has multiple Java installations, set `JAVA_HOME` to the JDK 17 installation before running Gradle.
+Confirm Java reports version 17 and Gradle reports version 8.13. If your system has multiple Java installations, set `JAVA_HOME` to the JDK 17 installation before running Gradle.
 
 ## Build and test
 
@@ -107,7 +107,7 @@ A successful unit-test task means the local JVM tests passed. A successful APK b
 
 ### GitHub Actions
 
-Pull requests targeting `main` run the **Build APK** workflow. It uses Temurin JDK 17 and Gradle 8.2, runs unit tests and builds the debug APK, then generates a dependency licence report. The workflow uploads the debug APK and licence report as downloadable artifacts.
+Pull requests targeting `main` run the **Build APK** workflow. It uses Temurin JDK 17 and Gradle 8.13, runs unit tests and builds the debug APK, then generates a dependency licence report. The workflow uploads the debug APK and licence report as downloadable artifacts.
 
 To inspect a run, open the repository's **Actions** tab, select **Build APK**, and open the run for your commit. If a check fails, include the failing task and relevant log excerpt in your pull request discussion.
 
